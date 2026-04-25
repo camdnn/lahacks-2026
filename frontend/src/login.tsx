@@ -92,50 +92,52 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left Content Section */}
-      <div className="relative hidden lg:flex flex-col justify-between bg-linear-to-br from-primary/90 via-primary to-primary/80 p-12 text-primary-foreground">
-        <div className="relative z-20">
+      <div
+        className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden"
+        style={{ background: 'linear-gradient(150deg, #2C1A08 0%, #3D2410 55%, #1E1005 100%)', color: '#FBF3E2' }}
+      >
+        <div className="relative z-10">
           <div className="flex items-center gap-2 text-lg font-semibold">
-            <div className="size-8 rounded-lg bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center">
+            <div className="size-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,243,226,0.12)' }}>
               <Sparkles className="size-4" />
             </div>
             <span>YourBrand</span>
           </div>
         </div>
 
-        <div className="relative z-20 flex items-end justify-center h-125">
-          {/* Blob mascots — Pudge is main, Peachie + Bubs as companions */}
-          <div className="flex items-end gap-6 pb-8">
-            {/* Peachie — small left companion */}
+        <div className="relative z-10 flex flex-1 items-end justify-center pb-10">
+          <div className="flex items-end gap-10">
+            {/* Peachie — left companion */}
             <div ref={peachieRef}>
               <Blob
                 state={getCompanionState(0)}
                 palette="peach"
                 shape="classic"
-                size={110}
+                size={135}
                 eyeTarget={eyeTarget}
                 lean={computeLean(peachieRef)}
                 showGround
               />
             </div>
-            {/* Pudge — main mascot (cream, wide, cozy) */}
+            {/* Pudge — main mascot */}
             <div ref={pudgeRef}>
               <Blob
                 state={getPudgeState()}
                 palette="cream"
                 shape="wide"
-                size={210}
+                size={215}
                 eyeTarget={eyeTarget}
                 lean={computeLean(pudgeRef)}
                 showGround
               />
             </div>
-            {/* Bubs — small right companion */}
+            {/* Bubs — right companion */}
             <div ref={bubsRef}>
               <Blob
                 state={getCompanionState(1)}
                 palette="honey"
                 shape="baby"
-                size={90}
+                size={115}
                 eyeTarget={eyeTarget}
                 lean={computeLean(bubsRef)}
                 showGround
@@ -144,22 +146,23 @@ function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-20 flex items-center gap-8 text-sm text-primary-foreground/60">
-          <a href="#" className="hover:text-primary-foreground transition-colors">
+        <div className="relative z-10 flex items-center gap-8 text-sm" style={{ color: 'rgba(251,243,226,0.45)' }}>
+          <a href="#" className="hover:opacity-80 transition-opacity" style={{ color: 'inherit' }}>
             Privacy Policy
           </a>
-          <a href="#" className="hover:text-primary-foreground transition-colors">
+          <a href="#" className="hover:opacity-80 transition-opacity" style={{ color: 'inherit' }}>
             Terms of Service
           </a>
-          <a href="#" className="hover:text-primary-foreground transition-colors">
+          <a href="#" className="hover:opacity-80 transition-opacity" style={{ color: 'inherit' }}>
             Contact
           </a>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
-        <div className="absolute top-1/4 right-1/4 size-64 bg-primary-foreground/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 size-96 bg-primary-foreground/5 rounded-full blur-3xl" />
+        {/* Warm ambient glow behind blobs */}
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-48 rounded-full blur-3xl pointer-events-none"
+          style={{ background: 'rgba(242,167,102,0.10)' }}
+        />
       </div>
 
       {/* Right Login Section */}

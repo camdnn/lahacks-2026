@@ -1,12 +1,15 @@
-import { Component } from '../src/login'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Component as LoginPage } from './login'
 import './App.css'
 
 function App() {
-
   return (
-    <>
-      <Component />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
