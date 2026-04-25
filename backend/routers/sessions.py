@@ -48,7 +48,7 @@ async def start_session(body: StartBody, user_id: str = Depends(_decode_token)):
          "tabs": body.allowed_tabs},
     )
     sid = str(row["session_id"])
-    state.start(sid)
+    state.start(sid, session_type=body.session_type, allowed_tabs=body.allowed_tabs)
     return {"session_id": sid, "started_at": row["started_at"]}
 
 

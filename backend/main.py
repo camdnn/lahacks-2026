@@ -8,6 +8,7 @@ from database import database
 from state import state
 from routers import auth, sessions, eye_data, screen_data, events
 from cv.loop import run_cv_loop, register_ws_client, unregister_ws_client
+from monitor.screen_monitor import run_screen_monitor
 
 app = FastAPI(title="Flicker to Flow API")
 
@@ -32,6 +33,8 @@ async def startup():
     loop = asyncio.get_event_loop()
     t = threading.Thread(target=run_cv_loop, args=(loop,), daemon=True)
     t.start()
+    t2 = threading.Thread(target=run_screen_monitor, args=(loop,), daemon=True)
+    t2.start()
 
 
 @app.on_event("shutdown")

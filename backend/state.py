@@ -32,14 +32,27 @@ class SessionState:
             self.face_detected: bool = False
             self.blink_count: int = 0
             self.blink_rate: float = 0.0
+            # Screen signal metrics (updated by screen_monitor)
+            self.session_type: str = "general"
+            self.allowed_tabs: list = []
+            self.typing_speed_wpm: float = 0.0
+            self.mistype_rate: float = 0.0
+            self.active_tab: str | None = None
+            self.is_idle: bool = False
 
-    def start(self, session_id: str):
+    def start(self, session_id: str, *, session_type: str = "general", allowed_tabs: list | None = None):
         with self._lock:
             self.session_id = session_id
             self.is_active = True
             self.started_at = datetime.utcnow()
             self.counts = {k: 0 for k in DISTRACTOR_WEIGHTS}
             self.focus_score = 100.0
+            self.session_type = session_type
+            self.allowed_tabs = allowed_tabs or []
+            self.typing_speed_wpm = 0.0
+            self.mistype_rate = 0.0
+            self.active_tab = None
+            self.is_idle = False
 
     def stop(self):
         with self._lock:
@@ -76,6 +89,12 @@ class SessionState:
             self.face_detected = face_detected
             self.blink_rate = blink_rate
 
+    def update_screen(self, **kwargs):
+        with self._lock:
+            for key, val in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, val)
+
     def snapshot(self) -> dict:
         with self._lock:
             return {
@@ -90,6 +109,11 @@ class SessionState:
                 "nose_ratio": round(self.nose_ratio, 4),
                 "face_detected": self.face_detected,
                 "blink_rate": round(self.blink_rate, 2),
+                # Screen signals
+                "typing_speed_wpm": round(self.typing_speed_wpm, 2),
+                "mistype_rate": round(self.mistype_rate, 4),
+                "active_tab": self.active_tab,
+                "is_idle": self.is_idle,
             }
 
 
