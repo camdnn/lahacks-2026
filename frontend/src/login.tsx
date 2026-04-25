@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./components/ui/Button";
 import { Input } from "./components/ui/Input";
 import { Label } from "./components/ui/Label";
@@ -13,6 +14,7 @@ import { Blob, type BlobState } from "./components/Blob";
 
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -75,12 +77,7 @@ function LoginPage() {
 
     // Mock authentication - validate against dummy credentials
     if (email === "erik@gmail.com" && password === "1234") {
-      console.log("✅ Login successful!");
-      alert("Login successful! Welcome, Erik!");
-      // In a real app, you would:
-      // - Store auth token
-      // - Redirect to dashboard
-      // - Set user session
+      navigate('/analytics');
     } else {
       setError("Invalid email or password. Please try again.");
       console.log("❌ Login failed");

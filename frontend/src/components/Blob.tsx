@@ -9,8 +9,8 @@ const BLOB_PALETTES = {
   honey:  { name: 'Honey',  body: '#F2A766', bodyDark: '#C97A3F', belly: '#F9CC9A', cheek: '#E25D72', accent: '#FFE3A3', ground: '#EDD2B0' },
 } as const;
 
-type PaletteKey = keyof typeof BLOB_PALETTES;
-type ShapeKey = 'classic' | 'tall' | 'wide' | 'eared' | 'spike' | 'baby';
+export type PaletteKey = keyof typeof BLOB_PALETTES;
+export type ShapeKey = 'classic' | 'tall' | 'wide' | 'eared' | 'spike' | 'baby';
 export type BlobState = 'idle' | 'focused' | 'cheering' | 'sleeping' | 'distracted' | 'encouraging' | 'sad' | 'walking' | 'poked';
 
 type Palette = typeof BLOB_PALETTES[PaletteKey];
