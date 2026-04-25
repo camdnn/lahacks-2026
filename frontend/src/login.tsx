@@ -8,14 +8,12 @@ import { Label } from "./components/ui/Label";
 import { Checkbox } from "./components/ui/Checkbox";
 import { Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import { Blob, type BlobState } from "./components/Blob";
-import { useAuth } from "./context/AuthContext";
 
 
 
 
 
 function LoginPage() {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -73,15 +71,19 @@ function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    try {
-      await login(email, password);
-      navigate("/");
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg ?? "Invalid email or password.");
-    } finally {
-      setIsLoading(false);
+
+    // Simulate API delay (quick)
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Mock authentication - validate against dummy credentials
+    if (email === "erik@gmail.com" && password === "1234") {
+      navigate('/analytics');
+    } else {
+      setError("Invalid email or password. Please try again.");
+      console.log("❌ Login failed");
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -89,11 +91,11 @@ function LoginPage() {
       {/* Left Content Section */}
       <div
         className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden"
-        style={{ background: 'linear-gradient(150deg, #2C1A08 0%, #3D2410 55%, #1E1005 100%)', color: '#FBF3E2' }}
+        style={{ background: '#FBF1E5', color: '#3D2A1B' }}
       >
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-lg font-semibold">
-            <div className="size-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,243,226,0.12)' }}>
+            <div className="size-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(61,42,27,0.08)' }}>
               <Sparkles className="size-4" />
             </div>
             <span>YourBrand</span>
@@ -141,7 +143,7 @@ function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center gap-8 text-sm" style={{ color: 'rgba(251,243,226,0.45)' }}>
+        <div className="relative z-10 flex items-center gap-8 text-sm" style={{ color: 'rgba(61,42,27,0.45)' }}>
           <a href="#" className="hover:opacity-80 transition-opacity" style={{ color: 'inherit' }}>
             Privacy Policy
           </a>
@@ -156,7 +158,7 @@ function LoginPage() {
         {/* Warm ambient glow behind blobs */}
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-48 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(242,167,102,0.10)' }}
+          style={{ background: 'rgba(240,143,96,0.15)' }}
         />
       </div>
 
@@ -272,7 +274,7 @@ function LoginPage() {
           {/* Sign Up Link */}
           <div className="text-center text-sm text-muted-foreground mt-8">
             Don't have an account?{" "}
-            <a href="/register" className="text-foreground font-medium hover:underline">
+            <a href="#" className="text-foreground font-medium hover:underline">
               Sign Up
             </a>
           </div>
