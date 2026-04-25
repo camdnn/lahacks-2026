@@ -60,7 +60,7 @@ async def ws_cv(websocket: WebSocket):
     register_ws_client(q)
     try:
         while True:
-            payload = await asyncio.wait_for(q.get(), timeout=5.0)
+            payload = await asyncio.wait_for(q.get(), timeout=30.0)
             await websocket.send_text(json.dumps(payload))
     except (WebSocketDisconnect, asyncio.TimeoutError, Exception):
         pass

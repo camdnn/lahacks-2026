@@ -57,7 +57,7 @@ def _broadcast_frame(loop: asyncio.AbstractEventLoop, frame: np.ndarray, metrics
 
 def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
     """Main CV loop — call in a daemon thread."""
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     if not cap.isOpened():
         print("[CV] No webcam found — CV loop not running.")
         return
