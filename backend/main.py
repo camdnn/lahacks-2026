@@ -1,25 +1,30 @@
 import asyncio
 import json
+import os
 import threading
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import database
 from state import state
-from routers import auth, sessions, eye_data, screen_data, events
+from routers import sessions, eye_data, screen_data, events
 from cv.loop import run_cv_loop, register_ws_client, unregister_ws_client
 
 app = FastAPI(title="Flicker to Flow API")
 
+_CORS_ORIGINS = [o.strip() for o in os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:3000",
+).split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(eye_data.router)
 app.include_router(screen_data.router)
