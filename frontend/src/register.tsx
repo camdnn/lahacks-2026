@@ -29,7 +29,6 @@ function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +87,7 @@ function RegisterPage() {
     setError("");
     setIsLoading(true);
     try {
-      await registerWithEmail(email, password, username || undefined);
+      await registerWithEmail(email, password);
       navigate("/");
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? "Could not create account. Try a different email.");
@@ -182,20 +181,6 @@ function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="username" className="text-sm font-medium">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="pudge"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onFocus={() => setIsTyping(true)}
-                onBlur={() => setIsTyping(false)}
-                className="h-11 bg-background border-border/60 focus:border-primary"
-              />
-            </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input

@@ -86,6 +86,7 @@ function LoginPage() {
       await loginWithEmail(email, password);
       navigate("/");
     } catch (err: unknown) {
+      console.error("Login error:", err);
       setError((err as { message?: string })?.message ?? "Invalid email or password.");
     } finally {
       setIsLoading(false);
