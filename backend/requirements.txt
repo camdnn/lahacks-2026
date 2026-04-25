@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+databases[asyncpg]
+asyncpg
+python-dotenv
+passlib[bcrypt]
+python-jose[cryptography]
+opencv-python
+mediapipe
+pynput
+pillow
+pyobjc-framework-Cocoa; sys_platform == "darwin"
+pygetwindow; sys_platform == "win32"
+numpy
