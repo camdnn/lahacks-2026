@@ -18,9 +18,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+        <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
         <Route path="/start" element={<RequireAuth><StartFocus /></RequireAuth>} />
         <Route path="/session" element={<RequireAuth><ActiveSession /></RequireAuth>} />
         <Route path="/summary" element={<RequireAuth><SessionSummary /></RequireAuth>} />
