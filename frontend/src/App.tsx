@@ -7,11 +7,14 @@ import StartFocus from "./pages/StartFocus";
 import ActiveSession from "./pages/ActiveSession";
 import SessionSummary from "./pages/SessionSummary";
 import CVTest from "./pages/CVTest";
+import AuthCallback from "./pages/AuthCallback";
+import Homepage from "./homepage";
 import "./App.css";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
-  return token ? <>{children}</> : <Navigate to="/login" replace />;
+  const { session, loading } = useAuth();
+  if (loading) return null;
+  return session ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
@@ -19,9 +22,10 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
+        <Route path="/" element=<Homepage /> />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/start" element={<RequireAuth><StartFocus /></RequireAuth>} />
         <Route path="/session" element={<RequireAuth><ActiveSession /></RequireAuth>} />
         <Route path="/summary" element={<RequireAuth><SessionSummary /></RequireAuth>} />
