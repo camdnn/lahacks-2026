@@ -1,12 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 from datetime import datetime, date
+from jose import jwt, JWTError
+import os
 
 from database import database
 from state import state, DISTRACTOR_WEIGHTS
-from auth_deps import get_current_user_id
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+SECRET    = os.getenv("JWT_SECRET", "dev-secret-change-me")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 TIPS = {
     "microsleep":     "Take a 5-minute break every 25 minutes and ensure you're getting enough sleep.",
@@ -20,6 +23,15 @@ TIPS = {
 }
 
 
+def _decode_token(authorization: str = Header(...)):
+    try:
+        scheme, token = authorization.split()
+        payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
+        return payload["sub"]
+    except (JWTError, Exception):
+        raise HTTPException(401, "Invalid token")
+
+
 class StartBody(BaseModel):
     session_type: str = "general"
     focus_duration_mins: int | None = None
@@ -27,7 +39,7 @@ class StartBody(BaseModel):
 
 
 @router.post("/start")
-async def start_session(body: StartBody, user_id: str = Depends(get_current_user_id)):
+async def start_session(body: StartBody, user_id: str = Depends(_decode_token)):
     row = await database.fetch_one(
         """INSERT INTO sessions (user_id, session_type, focus_duration_mins, allowed_tabs)
            VALUES (:uid, :st, :dur, :tabs)
@@ -41,7 +53,7 @@ async def start_session(body: StartBody, user_id: str = Depends(get_current_user
 
 
 @router.post("/end/{session_id}")
-async def end_session(session_id: str, user_id: str = Depends(get_current_user_id)):
+async def end_session(session_id: str, user_id: str = Depends(_decode_token)):
     session = await database.fetch_one(
         "SELECT * FROM sessions WHERE session_id = :sid AND user_id = :uid",
         {"sid": session_id, "uid": user_id},
@@ -75,7 +87,7 @@ async def end_session(session_id: str, user_id: str = Depends(get_current_user_i
          "td": str(top_distractors), "tips": str(improvement_tips), "sid": session_id},
     )
     await database.execute(
-        "UPDATE profiles SET coin_balance = coin_balance + :c WHERE id = :uid",
+        "UPDATE users SET coin_balance = coin_balance + :c WHERE user_id = :uid",
         {"c": coins, "uid": user_id},
     )
 
@@ -97,7 +109,7 @@ async def end_session(session_id: str, user_id: str = Depends(get_current_user_i
             {"c": cur, "l": longest, "d": today, "uid": user_id},
         )
 
-    user = await database.fetch_one("SELECT coin_balance FROM profiles WHERE id = :uid", {"uid": user_id})
+    user = await database.fetch_one("SELECT coin_balance FROM users WHERE user_id = :uid", {"uid": user_id})
 
     return {
         "session_id": session_id,

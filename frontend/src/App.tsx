@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { Component as LoginPage } from "./login";
 import { Component as RegisterPage } from "./register";
-import Home from "./pages/Home";
 import StartFocus from "./pages/StartFocus";
 import ActiveSession from "./pages/ActiveSession";
 import SessionSummary from "./pages/SessionSummary";
