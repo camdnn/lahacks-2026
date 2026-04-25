@@ -4,7 +4,7 @@ import { Blob } from "../components/Blob";
 import { Sparkles, Coins, Flame, LogOut, Play } from "lucide-react";
 
 export default function Home() {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -18,9 +18,9 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 rounded-full text-amber-600 font-semibold text-sm">
             <Coins className="size-4" />
-            {user?.coin_balance ?? 0} coins
+            {profile?.coin_balance ?? 0} coins
           </div>
-          <button onClick={logout} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => logout()} className="text-muted-foreground hover:text-foreground transition-colors">
             <LogOut className="size-5" />
           </button>
         </div>
@@ -31,7 +31,7 @@ export default function Home() {
         {/* Welcome */}
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-2">
-            Hey{user?.username ? `, ${user.username}` : ""}! 👋
+            Hey{profile?.username ? `, ${profile.username}` : ""}! 👋
           </h1>
           <p className="text-muted-foreground text-lg">Ready to crush your focus session?</p>
         </div>
