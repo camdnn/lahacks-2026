@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Blob } from './components/Blob';
+import { useAuth } from './context/AuthContext';
 
 // ── Inject page-level styles once ────────────────────────────
 let landingStylesInjected = false;
@@ -75,7 +76,7 @@ const C = {
 };
 
 // ── Nav ───────────────────────────────────────────────────────
-function Nav({ onLogin }: { onLogin: () => void }) {
+function Nav({ onLogin, onDashboard, username }: { onLogin: () => void; onDashboard: () => void; username?: string }) {
   return (
     <nav style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -94,10 +95,27 @@ function Nav({ onLogin }: { onLogin: () => void }) {
         <span style={{ fontWeight: 600, fontSize: 12, color: C.soft, marginLeft: 2 }}>focus, with friends</span>
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <button className="landing-ghost-btn" onClick={onLogin}>Sign in</button>
-        <button className="landing-cta-btn" style={{ padding: '12px 24px', fontSize: 14 }} onClick={onLogin}>
-          Get started →
-        </button>
+        {username ? (
+          <>
+            <span style={{
+              padding: '6px 14px', borderRadius: 999,
+              background: C.accentSoft, color: C.accent,
+              fontSize: 13, fontWeight: 800,
+            }}>
+              {username}
+            </span>
+            <button className="landing-cta-btn" style={{ padding: '12px 24px', fontSize: 14 }} onClick={onDashboard}>
+              Dashboard →
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="landing-ghost-btn" onClick={onLogin}>Sign in</button>
+            <button className="landing-cta-btn" style={{ padding: '12px 24px', fontSize: 14 }} onClick={onLogin}>
+              Get started →
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );
@@ -106,7 +124,7 @@ function Nav({ onLogin }: { onLogin: () => void }) {
 // ── Hero ──────────────────────────────────────────────────────
 function Hero({ onLogin, onAnalytics }: { onLogin: () => void; onAnalytics: () => void }) {
   const [blobMsg, setBlobMsg] = useState('ready when you are :)');
-  const msgs = ['flicker to flow ✨', "let's focus today!", "i'll keep you on track", 'we got this together'];
+  const msgs = ['flicker to flow', "let's focus today!", "i'll keep you on track", 'we got this together'];
 
   useEffect(() => {
     let i = 0;
@@ -160,7 +178,7 @@ function Hero({ onLogin, onAnalytics }: { onLogin: () => void; onAnalytics: () =
         {/* CTAs */}
         <div className="fade-up fade-up-4" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 56 }}>
           <button className="landing-cta-btn" onClick={onLogin}>Start focusing free →</button>
-          <button className="landing-ghost-btn" onClick={onAnalytics}>See your analytics</button>
+          <button disabled className="landing-ghost-btn" onClick={onAnalytics}>See your analytics</button>
         </div>
 
         {/* Mascot */}
@@ -211,7 +229,7 @@ function Hero({ onLogin, onAnalytics }: { onLogin: () => void; onAnalytics: () =
 function Features() {
   const features = [
     {
-      icon: '👁',
+      icon: 'eye',
       color: '#FF9180',
       colorSoft: '#FFE0DB',
       title: 'Eye Signal',
@@ -219,7 +237,7 @@ function Features() {
       items: ['Blink speed & frequency', 'Yawn detection (3× mouth size)', 'Phone-check detection', 'Microsleep alerts'],
     },
     {
-      icon: '⌨️',
+      icon: 'kb',
       color: '#7FB069',
       colorSoft: '#D9F0D3',
       title: 'Computer Signals',
@@ -227,7 +245,7 @@ function Features() {
       items: ['Typing cadence baseline', 'Tab-switch frequency', 'App focus sessions', 'Productivity trends'],
     },
     {
-      icon: '🔥',
+      icon: 'flow',
       color: '#F08F60',
       colorSoft: '#FFE8D9',
       title: 'Flow Sessions',
@@ -298,7 +316,7 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
           <p style={{ fontSize: 15, fontWeight: 500, color: C.soft, lineHeight: 1.7, marginBottom: 28 }}>
             After every session, Bloom ranks your top 5 most harmful break patterns, shows you your peak-focus window, and tells you exactly how to improve — with timestamps.
           </p>
-          <button className="landing-cta-btn" onClick={onAnalytics}>View sample analytics →</button>
+          <button disabled className="landing-cta-btn" onClick={onAnalytics}>View sample analytics →</button>
         </div>
 
         {/* Mini score card */}
@@ -315,7 +333,7 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
               <div style={{ fontSize: 13, fontWeight: 700, color: C.green }}>↑ 12 pts from last session</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: C.accent }}>🪙 142</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: C.accent }}>142</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.soft }}>coins earned</div>
             </div>
           </div>
@@ -371,6 +389,8 @@ function FooterCTA({ onLogin }: { onLogin: () => void }) {
 export default function Homepage() {
   injectLandingStyles();
   const navigate = useNavigate();
+  const { profile, session } = useAuth();
+  const cta = () => navigate(session ? '/home' : '/login');
 
   return (
     <div style={{
@@ -380,11 +400,15 @@ export default function Homepage() {
       minHeight: '100vh',
       overflowX: 'hidden',
     }}>
-      <Nav onLogin={() => navigate('/login')} />
-      <Hero onLogin={() => navigate('/login')} onAnalytics={() => navigate('/analytics')} />
+      <Nav
+        onLogin={cta}
+        onDashboard={() => navigate('/home')}
+        username={session ? (profile?.username ?? profile?.email ?? session.user.email ?? undefined) : undefined}
+      />
+      <Hero onLogin={cta} onAnalytics={() => navigate('/analytics')} />
       <Features />
       <ScorePreview onAnalytics={() => navigate('/analytics')} />
-      <FooterCTA onLogin={() => navigate('/login')} />
+      <FooterCTA onLogin={cta} />
       <footer style={{
         borderTop: `1.5px solid ${C.border}`,
         padding: '24px 48px',
@@ -393,7 +417,7 @@ export default function Homepage() {
       }}>
         <div>© 2026 Bloom · focus, with friends</div>
         <div style={{ display: 'flex', gap: 24 }}>
-          <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.soft, fontFamily: 'inherit' }}>Sign in</button>
+          <button onClick={cta} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.soft, fontFamily: 'inherit' }}>Sign in</button>
           <button onClick={() => navigate('/analytics')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.soft, fontFamily: 'inherit' }}>Analytics</button>
         </div>
       </footer>

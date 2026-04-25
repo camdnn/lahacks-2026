@@ -26,13 +26,18 @@ const GitHubIcon = () => (
 );
 
 function LoginPage() {
-  const { loginWithEmail, loginWithGoogle, loginWithGitHub } = useAuth();
+  const { loginWithEmail, loginWithGoogle, loginWithGitHub, session } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [redirectPending, setRedirectPending] = useState(false);
+
+  useEffect(() => {
+    if (redirectPending && session) navigate("/home");
+  }, [redirectPending, session, navigate]);
   const [mouseX, setMouseX] = useState<number | null>(null);
   const [mouseY, setMouseY] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -84,7 +89,7 @@ function LoginPage() {
     setIsLoading(true);
     try {
       await loginWithEmail(email, password);
-      navigate("/");
+      setRedirectPending(true);
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? "Invalid email or password.");
     } finally {

@@ -15,12 +15,12 @@ interface CVMetrics {
 }
 
 const EVENT_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
-  microsleep:      { label: "Microsleep",       emoji: "😴", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  yawn:            { label: "Yawn",             emoji: "🥱", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  phone_check:     { label: "Phone Check",      emoji: "📱", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  head_tilt:       { label: "Head Tilt",        emoji: "↩",  color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  eyes_off_screen: { label: "Eyes Off Screen",  emoji: "👀", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-  tab_switch:      { label: "Tab Switch",       emoji: "⇄",  color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+  microsleep:      { label: "Microsleep",       emoji: "", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  yawn:            { label: "Yawn",             emoji: "", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+  phone_check:     { label: "Phone Check",      emoji: "", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  head_tilt:       { label: "Head Tilt",        emoji: "", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  eyes_off_screen: { label: "Eyes Off Screen",  emoji: "", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  tab_switch:      { label: "Tab Switch",       emoji: "", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
 };
 
 function MetricBar({ label, value, min, max, danger, warn }: {
@@ -129,7 +129,7 @@ export default function CVTest() {
         <div className="flex-1 flex items-center justify-center bg-slate-900 relative min-h-[360px]">
           {error ? (
             <div className="text-center p-8">
-              <div className="text-4xl mb-4">📷</div>
+              <div className="text-4xl mb-4 font-mono text-slate-400">[cam]</div>
               <p className="text-red-400 font-medium mb-2">Connection Error</p>
               <p className="text-slate-400 text-sm mb-4">{error}</p>
               <button
@@ -141,7 +141,7 @@ export default function CVTest() {
             </div>
           ) : !connected ? (
             <div className="text-center">
-              <div className="animate-pulse text-4xl mb-4">📡</div>
+              <div className="animate-pulse text-4xl mb-4 font-mono text-slate-400">[connecting]</div>
               <p className="text-slate-400">Connecting to CV pipeline…</p>
             </div>
           ) : (
