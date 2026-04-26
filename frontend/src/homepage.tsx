@@ -365,7 +365,10 @@ function Hero({
             marginBottom: 56,
           }}
         >
-          <button className="landing-cta-btn" onClick={() => navigate("/register")}>
+          <button
+            className="landing-cta-btn"
+            onClick={() => navigate("/register")}
+          >
             Start focusing free →
           </button>
           <button disabled className="landing-ghost-btn" onClick={onAnalytics}>
@@ -833,7 +836,7 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
 }
 
 // ── Footer CTA ────────────────────────────────────────────────
-function FooterCTA() {
+function FooterCTA({ onLogin }: { onLogin: () => void }) {
   const navigate = useNavigate();
   return (
     <section
@@ -923,7 +926,7 @@ export default function Homepage() {
       <Hero onLogin={cta} onAnalytics={() => navigate("/analytics")} />
       <Features />
       <ScorePreview onAnalytics={() => navigate("/analytics")} />
-      <FooterCTA />
+      <FooterCTA onLogin={cta} />
       <footer
         style={{
           borderTop: `1.5px solid ${C.border}`,
