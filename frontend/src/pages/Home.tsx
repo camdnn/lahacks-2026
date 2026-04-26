@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Sparkles, Coins, Flame, LogOut, Play } from "lucide-react";
+import { Sparkles, Coins, Flame, LogOut, Play, Download } from "lucide-react";
 
 export default function Home() {
   const { user, logout } = useAuth();
@@ -67,6 +67,26 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">Test camera detection live</p>
           </button>
         </div>
+
+        {/* Download overlay */}
+        <a
+          href="http://localhost:8000/download/overlay"
+          download="pudge-overlay.zip"
+          className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
+        >
+          <div className="size-12 shrink-0 rounded-xl bg-orange-500/10 flex items-center justify-center">
+            <Download className="size-6 text-orange-500 group-hover:translate-y-0.5 transition-transform" />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="font-bold text-base">Download Pudge Overlay</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Desktop app — Pudge floats above every window
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground border border-border/60 rounded-full px-2.5 py-1 shrink-0">
+            .zip
+          </span>
+        </a>
 
         {/* Streak */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm">

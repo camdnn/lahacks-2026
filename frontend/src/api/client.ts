@@ -23,6 +23,7 @@ export const endSession = (id: string) =>
 export const logEvent = (data: { session_id: string; event_type: string; duration_ms?: number; metadata?: object }) =>
   api.post("/events/", data);
 
+export const startCalibration = () => api.post("/calibrate/start");
 export const logEyeData = (data: object) => api.post("/eye-data/", data);
 export const logScreenData = (data: object) => api.post("/screen-data/", data);
 export const getState = () => api.get("/state");

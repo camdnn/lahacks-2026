@@ -1,30 +1,96 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from "../components/ui/Label";
-import { Blob } from "../components/Blob";
-import { ArrowLeft, Clock, Globe, Zap } from "lucide-react";
+import { Blob, type BlobState } from "../components/Blob";
+import { ArrowLeft, Check, Clock, Globe, Zap } from "lucide-react";
 
 const DURATIONS = [15, 25, 45, 60, 90];
+
+type Step = "config" | "calibrating" | "done";
 
 export default function StartFocus() {
   const navigate = useNavigate();
   const { start } = useSession();
-  const [sessionType, setSessionType] = useState<"general" | "specialized">("general");
-  const [duration, setDuration]       = useState(25);
+  const [step, setStep]                 = useState<Step>("config");
+  const [sessionType, setSessionType]   = useState<"general" | "specialized">("general");
+  const [duration, setDuration]         = useState(25);
   const [allowedTabInput, setAllowedTabInput] = useState("");
-  const [allowedTabs, setAllowedTabs] = useState<string[]>([]);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState("");
+  const [allowedTabs, setAllowedTabs]   = useState<string[]>([]);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState("");
+  const [countdown, setCountdown]       = useState(5);
+  const [mousePos, setMousePos]         = useState<{ x: number; y: number } | null>(null);
+  const [calibStream, setCalibStream]   = useState<MediaStream | null>(null);
+  const [calibBlink, setCalibBlink]     = useState(false);
+  const calibVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+
+  // Bind calibration video element to stream
+  useEffect(() => {
+    if (calibVideoRef.current && calibStream) {
+      calibVideoRef.current.srcObject = calibStream;
+    }
+  }, [calibStream]);
+
+  // Pudge blink animation during calibration
+  useEffect(() => {
+    if (step !== "calibrating" || !calibStream) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const sched = () => {
+      timer = setTimeout(() => {
+        setCalibBlink(true);
+        setTimeout(() => { setCalibBlink(false); sched(); }, 120);
+      }, 2500 + Math.random() * 2000);
+    };
+    sched();
+    return () => clearTimeout(timer);
+  }, [step, calibStream]);
+
+  // Drive countdown timer during calibration
+  useEffect(() => {
+    if (step !== "calibrating") return;
+    setCountdown(5);
+    const interval = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) { clearInterval(interval); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [step]);
 
   const addTab = () => {
     const val = allowedTabInput.trim();
-    if (val && !allowedTabs.includes(val)) {
-      setAllowedTabs((t) => [...t, val]);
-    }
+    if (val && !allowedTabs.includes(val)) setAllowedTabs((t) => [...t, val]);
     setAllowedTabInput("");
+  };
+
+  const handleCalibrate = async () => {
+    setStep("calibrating");
+    setError("");
+
+    // Start a temporary camera preview so user can see they're in frame
+    let localStream: MediaStream | null = null;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      setCalibStream(localStream);
+    } catch { /* permission denied — show placeholder */ }
+
+    await new Promise(r => setTimeout(r, 5000));
+
+    // Stop preview before FocusContext opens its own stream (use local var to avoid stale closure)
+    localStream?.getTracks().forEach(t => t.stop());
+    setCalibStream(null);
+
+    await handleStart();
   };
 
   const handleStart = async () => {
@@ -35,20 +101,98 @@ export default function StartFocus() {
       navigate("/session");
     } catch {
       setError("Failed to start session. Is the backend running?");
+      setStep("config");
     } finally {
       setLoading(false);
     }
   };
 
+  const pudgeState: BlobState =
+    step === "calibrating" ? "focused" :
+    step === "done"        ? "cheering" :
+    loading                ? "walking"  : "encouraging";
+
+  // ── Calibration overlay ──────────────────────────────────────────────────
+  if (step === "calibrating") {
+    const pct = ((5 - countdown) / 5) * 100;
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 gap-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-bold mb-2">Calibrating…</h1>
+          <p className="text-muted-foreground text-sm">
+            Look straight at your screen naturally. Pudge is learning your resting position.
+          </p>
+        </div>
+
+        {/* Camera preview */}
+        <div className="relative w-full max-w-xs">
+          {calibStream ? (
+            <video
+              ref={calibVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full rounded-2xl object-cover aspect-video border-2 border-orange-500/40"
+              style={{ transform: "scaleX(-1)" }}
+            />
+          ) : (
+            <div className="w-full rounded-2xl aspect-video bg-muted/30 border-2 border-border/30 flex items-center justify-center">
+              <p className="text-sm text-muted-foreground animate-pulse">Requesting camera…</p>
+            </div>
+          )}
+          <div className={`absolute bottom-2 left-2 right-2 flex items-center justify-center py-1 rounded-xl text-xs font-semibold backdrop-blur-sm ${
+            calibStream ? "bg-emerald-500/30 text-emerald-200" : "bg-muted/50 text-muted-foreground"
+          }`}>
+            {calibStream ? "👁 Pudge can see you" : "⏳ Waiting for camera…"}
+          </div>
+        </div>
+
+        <Blob
+          palette="cream"
+          shape="wide"
+          size={140}
+          state={calibBlink ? "sleeping" : calibStream ? "cheering" : "focused"}
+          eyeTarget={mousePos}
+          showGround
+        />
+
+        {/* Progress ring */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative size-20">
+            <svg className="size-20 -rotate-90" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="none" className="text-border" />
+              <circle
+                cx="40" cy="40" r="34"
+                stroke="currentColor" strokeWidth="6" fill="none"
+                className="text-orange-500 transition-all duration-1000"
+                strokeDasharray={`${2 * Math.PI * 34}`}
+                strokeDashoffset={`${2 * Math.PI * 34 * (1 - pct / 100)}`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold tabular-nums">
+              {countdown}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">seconds remaining</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Config form ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-lg">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+        >
           <ArrowLeft className="size-4" /> Back
         </button>
 
         <div className="flex justify-center mb-8">
-          <Blob palette="cream" shape="wide" size={130} state="encouraging" showGround />
+          <Blob palette="cream" shape="wide" size={130} state={pudgeState} eyeTarget={mousePos} showGround />
         </div>
 
         <h1 className="text-3xl font-bold text-center mb-2">Start a Focus Session</h1>
@@ -60,13 +204,18 @@ export default function StartFocus() {
             <button
               key={t}
               onClick={() => setSessionType(t)}
-              className={`rounded-xl border p-4 text-left transition-all ${
+              className={`relative rounded-xl border p-4 text-left transition-all ${
                 sessionType === t
-                  ? "border-primary bg-primary/5"
+                  ? "border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30 shadow-sm"
                   : "border-border/60 hover:border-border"
               }`}
             >
-              <div className="text-xl mb-1">{t === "general" ? <Zap className="size-5" /> : <Globe className="size-5" />}</div>
+              {sessionType === t && (
+                <span className="absolute top-2 right-2 size-5 bg-orange-500 rounded-full flex items-center justify-center">
+                  <Check className="size-3 text-white" />
+                </span>
+              )}
+              <div className="mb-1">{t === "general" ? <Zap className="size-5" /> : <Globe className="size-5" />}</div>
               <div className="font-semibold capitalize">{t}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {t === "general" ? "Full focus, all distractors tracked" : "Specific tabs allowed"}
@@ -85,7 +234,7 @@ export default function StartFocus() {
                 onClick={() => setDuration(d)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
                   duration === d
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "border-orange-500 bg-orange-500 text-white"
                     : "border-border/60 hover:border-border"
                 }`}
               >
@@ -95,7 +244,7 @@ export default function StartFocus() {
           </div>
         </div>
 
-        {/* Allowed tabs (specialized only) */}
+        {/* Allowed tabs */}
         {sessionType === "specialized" && (
           <div className="mb-6">
             <Label className="mb-2 block">Allowed Sites / Keywords</Label>
@@ -111,10 +260,7 @@ export default function StartFocus() {
             </div>
             <div className="flex flex-wrap gap-2">
               {allowedTabs.map((tab) => (
-                <span
-                  key={tab}
-                  className="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
-                >
+                <span key={tab} className="flex items-center gap-1 px-3 py-1 bg-orange-500/10 text-orange-500 rounded-full text-sm">
                   {tab}
                   <button onClick={() => setAllowedTabs((t) => t.filter((x) => x !== tab))} className="ml-1 opacity-60 hover:opacity-100">×</button>
                 </span>
@@ -125,9 +271,27 @@ export default function StartFocus() {
 
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-        <Button onClick={handleStart} disabled={loading} className="w-full h-12 text-base font-semibold">
-          {loading ? "Starting…" : `Start ${duration}min Session`}
-        </Button>
+        {/* Two-button row: calibrate + skip */}
+        <div className="flex gap-3">
+          <Button
+            onClick={handleCalibrate}
+            disabled={loading}
+            className="flex-1 h-12 text-base font-semibold"
+          >
+            Calibrate &amp; Start
+          </Button>
+          <Button
+            onClick={handleStart}
+            disabled={loading}
+            variant="outline"
+            className="h-12 px-5 text-sm"
+          >
+            {loading ? "Starting…" : "Skip"}
+          </Button>
+        </div>
+        <p className="text-center text-xs text-muted-foreground mt-3">
+          Calibration takes 5 seconds and improves phone-check &amp; head-tilt accuracy
+        </p>
       </div>
     </div>
   );

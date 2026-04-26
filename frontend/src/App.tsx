@@ -7,6 +7,7 @@ import StartFocus from "./pages/StartFocus";
 import ActiveSession from "./pages/ActiveSession";
 import SessionSummary from "./pages/SessionSummary";
 import CVTest from "./pages/CVTest";
+import { FloatingPudge } from "./components/FloatingPudge";
 import "./App.css";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <FloatingPudge />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

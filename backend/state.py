@@ -32,6 +32,15 @@ class SessionState:
             self.face_detected: bool = False
             self.blink_count: int = 0
             self.blink_rate: float = 0.0
+            # Focus time accumulator (seconds face was detected during session)
+            self.focus_seconds: float = 0.0
+            # Calibration
+            self.is_calibrating: bool = False
+            self.calibrated: bool = False
+            self._cal_nose: list[float] = []
+            self._cal_tilt: list[float] = []
+            self.nose_baseline: float = 0.5
+            self.tilt_baseline: float = 0.0
 
     def start(self, session_id: str):
         with self._lock:
@@ -67,6 +76,32 @@ class SessionState:
             )
             return ranked[:n]
 
+    def start_calibration(self):
+        with self._lock:
+            self.is_calibrating = True
+            self.calibrated = False
+            self._cal_nose = []
+            self._cal_tilt = []
+
+    def add_calibration_frame(self, nose: float, tilt: float):
+        with self._lock:
+            if self.is_calibrating:
+                self._cal_nose.append(nose)
+                self._cal_tilt.append(tilt)
+
+    def finish_calibration(self):
+        import statistics
+        with self._lock:
+            if self._cal_nose:
+                self.nose_baseline = statistics.median(self._cal_nose)
+                self.tilt_baseline = statistics.median(self._cal_tilt)
+            self.is_calibrating = False
+            self.calibrated = True
+
+    def add_focus_time(self, dt: float):
+        with self._lock:
+            self.focus_seconds += dt
+
     def update_cv(self, *, ear, mar, head_tilt, nose_ratio, face_detected, blink_rate=0.0):
         with self._lock:
             self.ear = ear
@@ -90,6 +125,11 @@ class SessionState:
                 "nose_ratio": round(self.nose_ratio, 4),
                 "face_detected": self.face_detected,
                 "blink_rate": round(self.blink_rate, 2),
+                "focus_seconds": round(self.focus_seconds, 1),
+                "calibrated": self.calibrated,
+                "is_calibrating": self.is_calibrating,
+                "nose_baseline": round(self.nose_baseline, 4),
+                "tilt_baseline": round(self.tilt_baseline, 2),
             }
 
 

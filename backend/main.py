@@ -1,13 +1,17 @@
 import asyncio
+import io
 import json
 import threading
+import zipfile
+from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from database import database
 from state import state
-from routers import auth, sessions, eye_data, screen_data, events
-from cv.loop import run_cv_loop, register_ws_client, unregister_ws_client
+from routers import auth, sessions, eye_data, screen_data, events, calibrate
+from cv.loop import run_cv_loop, stop_cv_loop, register_ws_client, unregister_ws_client
 
 app = FastAPI(title="Flicker to Flow API")
 
@@ -24,6 +28,7 @@ app.include_router(sessions.router)
 app.include_router(eye_data.router)
 app.include_router(screen_data.router)
 app.include_router(events.router)
+app.include_router(calibrate.router)
 
 
 @app.on_event("startup")
@@ -36,6 +41,7 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    stop_cv_loop()
     await database.disconnect()
 
 
@@ -47,6 +53,27 @@ async def health():
 @app.get("/state")
 async def get_state():
     return state.snapshot()
+
+
+_OVERLAY_DIR = Path(__file__).parent.parent / "overlay"
+_SKIP = {"node_modules", "dist", ".git", "__pycache__"}
+
+@app.get("/download/overlay")
+async def download_overlay():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(_OVERLAY_DIR.rglob("*")):
+            if not path.is_file():
+                continue
+            if any(part in _SKIP for part in path.parts):
+                continue
+            zf.write(path, Path("pudge-overlay") / path.relative_to(_OVERLAY_DIR))
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="pudge-overlay.zip"'},
+    )
 
 
 @app.websocket("/ws/cv")

@@ -45,11 +45,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const end = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    const { data } = await apiEnd(sessionId!);
-    setIsActive(false);
-    setSummary(data);
-    updateCoins(data.coin_balance);
-    return data;
+    try {
+      const { data } = await apiEnd(sessionId!);
+      setIsActive(false);
+      setSummary(data);
+      updateCoins(data.coin_balance);
+      return data;
+    } catch (err) {
+      setIsActive(false);
+      throw err;
+    }
   }, [sessionId, updateCoins]);
 
   return (

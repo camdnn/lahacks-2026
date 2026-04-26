@@ -7,7 +7,7 @@ import { Input } from "./components/ui/Input";
 import { Label } from "./components/ui/Label";
 import { Checkbox } from "./components/ui/Checkbox";
 import { Eye, EyeOff, Mail, Sparkles } from "lucide-react";
-import { Blob, type BlobState } from "./components/Blob";
+import { Blob, usePettable, type BlobState } from "./components/Blob";
 import { useAuth } from "./context/AuthContext";
 
 
@@ -43,6 +43,9 @@ function LoginPage() {
   const bubsRef = useRef<HTMLDivElement>(null);
 
   const isActive = isTyping || isPasswordFocused;
+  const { blobState: pudgeState, onPet: onPetPudge } = usePettable(getPudgeState());
+  const { blobState: peachieState, onPet: onPetPeachie } = usePettable(getCompanionState(0));
+  const { blobState: bubsState, onPet: onPetBubs } = usePettable(getCompanionState(1));
 
   const computeLean = (ref: React.RefObject<HTMLDivElement | null>) => {
     if (!ref.current || mouseX === null) return 0;
@@ -103,37 +106,38 @@ function LoginPage() {
             {/* Peachie — small left companion */}
             <div ref={peachieRef}>
               <Blob
-                state={getCompanionState(0)}
+                state={peachieState}
                 palette="peach"
                 shape="classic"
                 size={110}
                 eyeTarget={eyeTarget}
                 lean={computeLean(peachieRef)}
                 showGround
+                onClick={onPetPeachie}
               />
             </div>
-            {/* Pudge — main mascot (cream, wide, cozy) */}
             <div ref={pudgeRef}>
               <Blob
-                state={getPudgeState()}
+                state={pudgeState}
                 palette="cream"
                 shape="wide"
                 size={210}
                 eyeTarget={eyeTarget}
                 lean={computeLean(pudgeRef)}
                 showGround
+                onClick={onPetPudge}
               />
             </div>
-            {/* Bubs — small right companion */}
             <div ref={bubsRef}>
               <Blob
-                state={getCompanionState(1)}
+                state={bubsState}
                 palette="honey"
                 shape="baby"
                 size={90}
                 eyeTarget={eyeTarget}
                 lean={computeLean(bubsRef)}
                 showGround
+                onClick={onPetBubs}
               />
             </div>
           </div>

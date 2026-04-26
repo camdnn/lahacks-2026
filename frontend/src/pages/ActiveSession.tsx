@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
 import { useFocus } from "../context/FocusContext";
@@ -12,14 +12,12 @@ function fmt(secs: number) {
 }
 
 const DISTRACTOR_LABELS: Record<string, string> = {
-  microsleep: "Microsleep",
-  yawn: "Yawn",
-  phone_check: "Phone Check",
-  head_tilt: "Head Tilt",
+  microsleep:      "Microsleep",
+  yawn:            "Yawn",
+  phone_check:     "Phone Check",
+  head_tilt:       "Head Tilt",
   eyes_off_screen: "Eyes Off Screen",
-  tab_switch: "Tab Switch",
-  disallowed_tab: "Wrong Tab",
-  rewind: "Rewind",
+  tab_switch:      "Tab Switch",
 };
 
 function getBlobState(score: number, face: boolean): BlobState {
@@ -33,18 +31,26 @@ export default function ActiveSession() {
   const navigate = useNavigate();
   const { durationMins, elapsed, end, isActive } = useSession();
   const focus = useFocus();
-  const [ending, setEnding] = useState(false);
+  const [ending, setEnding]   = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (!isActive) navigate("/");
-  }, [isActive, navigate]);
+    if (!isActive && !ending) navigate("/");
+  }, [isActive, ending, navigate]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", h);
     return () => window.removeEventListener("mousemove", h);
   }, []);
+
+  // Bind camera stream to the preview element
+  useEffect(() => {
+    if (videoRef.current && focus.cameraStream) {
+      videoRef.current.srcObject = focus.cameraStream;
+    }
+  }, [focus.cameraStream]);
 
   // Auto-end when timer runs out
   useEffect(() => {
@@ -60,7 +66,16 @@ export default function ActiveSession() {
       const summary = await end();
       navigate("/summary", { state: { summary } });
     } catch {
-      setEnding(false);
+      const localSummary = {
+        duration_mins: durationMins ?? Math.round(elapsed / 60),
+        focus_score: focus.focus_score,
+        coins_earned: 0,
+        coin_balance: 0,
+        top_distractors: focus.top_distractors.map(([type, count]) => ({ type, count, impact: 0 })),
+        improvement_tips: {},
+        event_counts: focus.counts,
+      };
+      navigate("/summary", { state: { summary: localSummary } });
     }
   };
 
@@ -69,7 +84,7 @@ export default function ActiveSession() {
   const score     = focus.focus_score;
 
   const scoreColor = score >= 80 ? "text-emerald-500" : score >= 50 ? "text-amber-500" : "text-red-500";
-  const ringColor  = score >= 80 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+  const ringColor  = score >= 80 ? "#10b981"           : score >= 50 ? "#f59e0b"         : "#ef4444";
 
   const topDistractors = Object.entries(focus.counts)
     .filter(([, v]) => v > 0)
@@ -78,27 +93,58 @@ export default function ActiveSession() {
 
   return (
     <div className="min-h-screen bg-background grid lg:grid-cols-2">
-      {/* Left — mascot panel */}
-      <div className="hidden lg:flex flex-col items-center justify-center bg-linear-to-br from-primary/90 via-primary to-primary/80 p-12 relative overflow-hidden">
+      {/* Left — camera + mascot panel */}
+      <div className="hidden lg:flex flex-col items-center justify-center bg-linear-to-br from-primary/90 via-primary to-primary/80 p-12 relative overflow-hidden gap-6">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
 
+        {/* Camera preview */}
+        <div className="relative z-10 w-full max-w-65">
+          {focus.cameraStream ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full rounded-2xl object-cover aspect-video border-2 border-white/20"
+              style={{ transform: "scaleX(-1)" }}
+            />
+          ) : (
+            <div className="w-full rounded-2xl aspect-video bg-black/30 border-2 border-white/10 flex items-center justify-center">
+              <div className="text-center text-primary-foreground/60">
+                <div className="text-2xl mb-1 animate-pulse">👁</div>
+                <p className="text-xs">
+                  {focus.connected ? "Camera starting…" : "Loading MediaPipe…"}
+                </p>
+              </div>
+            </div>
+          )}
+          {/* Face detection badge over the preview */}
+          <div className={`absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1.5 py-1 rounded-xl text-xs font-semibold backdrop-blur-sm ${
+            focus.face_detected
+              ? "bg-emerald-500/30 text-emerald-200"
+              : "bg-red-500/30 text-red-200"
+          }`}>
+            {focus.face_detected ? "👁 Face detected" : "⚠ Face not detected"}
+          </div>
+        </div>
+
         {/* Focus score ring */}
-        <div className="relative mb-8 z-10">
-          <svg width="160" height="160" className="-rotate-90">
-            <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="12" />
+        <div className="relative z-10">
+          <svg width="120" height="120" className="-rotate-90">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="10" />
             <circle
-              cx="80" cy="80" r="68" fill="none"
+              cx="60" cy="60" r="50" fill="none"
               stroke={ringColor}
-              strokeWidth="12"
+              strokeWidth="10"
               strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 68}`}
-              strokeDashoffset={`${2 * Math.PI * 68 * (1 - score / 100)}`}
+              strokeDasharray={`${2 * Math.PI * 50}`}
+              strokeDashoffset={`${2 * Math.PI * 50 * (1 - score / 100)}`}
               style={{ transition: "stroke-dashoffset 0.8s ease, stroke 0.5s" }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-4xl font-black ${scoreColor}`}>{Math.round(score)}</span>
-            <span className="text-primary-foreground/70 text-sm font-medium">focus score</span>
+            <span className={`text-3xl font-black ${scoreColor}`}>{Math.round(score)}</span>
+            <span className="text-primary-foreground/70 text-xs font-medium">focus</span>
           </div>
         </div>
 
@@ -107,20 +153,11 @@ export default function ActiveSession() {
           <Blob
             palette="cream"
             shape="wide"
-            size={200}
+            size={160}
             state={getBlobState(score, focus.face_detected)}
             eyeTarget={mousePos}
             showGround
           />
-        </div>
-
-        {/* Face detection badge */}
-        <div className={`z-10 mt-4 px-4 py-1.5 rounded-full text-sm font-semibold ${
-          focus.face_detected
-            ? "bg-emerald-500/20 text-emerald-300"
-            : "bg-red-500/20 text-red-300"
-        }`}>
-          {focus.face_detected ? "👁 Face detected" : "⚠ Face not detected"}
         </div>
       </div>
 
@@ -144,9 +181,19 @@ export default function ActiveSession() {
           )}
         </div>
 
+        {/* Coin counter */}
+        <div className="text-center">
+          <div className="text-4xl font-black text-amber-400 tabular-nums">
+            🪙 {focus.coinsEarned}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">coins earned (1 per 5 s focused)</p>
+        </div>
+
         {/* Distractor counts */}
         <div className="w-full max-w-xs">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Distractions</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Distractions
+          </h3>
           {topDistractors.length === 0 ? (
             <p className="text-muted-foreground text-sm">No distractions yet — great work!</p>
           ) : (

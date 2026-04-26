@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Pudge – Flicker to Flow",
+  "version": "1.0",
+  "description": "Your focus mascot, everywhere.",
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "exclude_matches": ["http://localhost/*"],
+    "js": ["content.js"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }],
+  "host_permissions": ["http://localhost:8000/*", "http://127.0.0.1:8000/*"],
+  "permissions": ["storage", "tabs"],
+  "background": {
+  "service_worker": "background.js"
+}
+}

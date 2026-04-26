@@ -11,7 +11,7 @@ const BLOB_PALETTES = {
 
 type PaletteKey = keyof typeof BLOB_PALETTES;
 type ShapeKey = 'classic' | 'tall' | 'wide' | 'eared' | 'spike' | 'baby';
-export type BlobState = 'idle' | 'focused' | 'cheering' | 'sleeping' | 'distracted' | 'encouraging' | 'sad' | 'walking' | 'poked';
+export type BlobState = 'idle' | 'focused' | 'cheering' | 'sleeping' | 'distracted' | 'encouraging' | 'sad' | 'walking' | 'poked' | 'petted';
 
 type Palette = typeof BLOB_PALETTES[PaletteKey];
 
@@ -34,11 +34,11 @@ function injectBlobStyles() {
       0%, 100% { transform: scaleY(1) scaleX(1); }
       50%      { transform: scaleY(1.03) scaleX(0.98); }
     }
-    .blob-cheering .blob-body { animation: blob-cheer 0.55s ease-in-out infinite; }
+    .blob-cheering .blob-body { animation: blob-cheer 1.1s ease-in-out infinite; }
     @keyframes blob-cheer {
       0%, 100% { transform: scaleY(1) scaleX(1) translateY(0); }
-      40%      { transform: scaleY(1.1) scaleX(0.92) translateY(-6px); }
-      70%      { transform: scaleY(0.92) scaleX(1.08) translateY(0); }
+      40%      { transform: scaleY(1.04) scaleX(0.97) translateY(-3px); }
+      70%      { transform: scaleY(0.97) scaleX(1.03) translateY(0); }
     }
     .blob-cheering .blob-shadow { animation: blob-shadow-pulse 0.55s ease-in-out infinite; }
     @keyframes blob-shadow-pulse {
@@ -77,10 +77,10 @@ function injectBlobStyles() {
       25%      { transform: rotate(-3deg); }
       75%      { transform: rotate(3deg); }
     }
-    .blob-encouraging .blob-body { animation: blob-nod 1.6s ease-in-out infinite; }
+    .blob-encouraging .blob-body { animation: blob-nod 2.4s ease-in-out infinite; }
     @keyframes blob-nod {
       0%, 100% { transform: translateY(0) scaleY(1); }
-      50%      { transform: translateY(-2px) scaleY(1.02); }
+      50%      { transform: translateY(-1px) scaleY(1.01); }
     }
     .blob-encourage path { animation: blob-heart 1.4s ease-in-out infinite; transform-origin: 84px 22px; }
     @keyframes blob-heart {
@@ -99,11 +99,11 @@ function injectBlobStyles() {
       20%  { opacity: 1; }
       100% { transform: translateY(20px); opacity: 0; }
     }
-    .blob-walking .blob-body { animation: blob-walk 0.6s ease-in-out infinite; }
+    .blob-walking .blob-body { animation: blob-walk 1.1s ease-in-out infinite; }
     @keyframes blob-walk {
       0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
-      40%      { transform: translateY(-8px) scaleY(1.06) scaleX(0.95); }
-      80%      { transform: translateY(0) scaleY(0.92) scaleX(1.08); }
+      40%      { transform: translateY(-4px) scaleY(1.03) scaleX(0.98); }
+      80%      { transform: translateY(0) scaleY(0.97) scaleX(1.03); }
     }
     .blob-poked .blob-body { animation: blob-poke 0.45s ease-out; }
     @keyframes blob-poke {
@@ -111,6 +111,20 @@ function injectBlobStyles() {
       30%  { transform: scaleY(0.7) scaleX(1.25); }
       60%  { transform: scaleY(1.1) scaleX(0.92); }
       100% { transform: scaleY(1) scaleX(1); }
+    }
+    .blob-petted .blob-body { animation: blob-pet 0.6s ease-out; }
+    @keyframes blob-pet {
+      0%   { transform: scaleY(1) scaleX(1) translateY(0); }
+      25%  { transform: scaleY(1.08) scaleX(0.94) translateY(-5px); }
+      55%  { transform: scaleY(0.96) scaleX(1.04) translateY(0); }
+      80%  { transform: scaleY(1.03) scaleX(0.98) translateY(-2px); }
+      100% { transform: scaleY(1) scaleX(1) translateY(0); }
+    }
+    .blob-petted .blob-hearts .blob-heart { animation: blob-heart-float 0.9s ease-out forwards; }
+    @keyframes blob-heart-float {
+      0%   { transform: translateY(0) scale(0); opacity: 0; }
+      20%  { transform: translateY(-8px) scale(1); opacity: 1; }
+      100% { transform: translateY(-32px) scale(0.7); opacity: 0; }
     }
   `;
   document.head.appendChild(s);
@@ -338,6 +352,8 @@ function BlobMouth({ state, P }: { state: BlobState; P: Palette }) {
       return <path d={`M 45 ${my + 1} Q 50 ${my + 4} 55 ${my + 1}`} stroke="#3a2a1f" strokeWidth="2" fill="none" strokeLinecap="round" />;
     case 'poked':
       return <ellipse cx="50" cy={my + 1} rx="3" ry="2.5" fill="#3a2a1f" />;
+    case 'petted':
+      return <path d={`M 43 ${my} Q 50 ${my + 6} 57 ${my}`} stroke="#3a2a1f" strokeWidth="2.2" fill="none" strokeLinecap="round" />;
     default:
       return <path d={`M 46 ${my} Q 50 ${my + 3.5} 54 ${my}`} stroke="#3a2a1f" strokeWidth="2" fill="none" strokeLinecap="round" />;
   }
@@ -397,9 +413,32 @@ function BlobAccents({ state, P }: { state: BlobState; P: Palette }) {
           <line x1="86" y1="50" x2="94" y2="50" stroke={P.bodyDark} strokeWidth="1.5" strokeLinecap="round" />
         </g>
       );
+    case 'petted':
+      return (
+        <g className="blob-hearts">
+          <HeartFloat x={22} y={18} color={P.cheek} delay="0s" />
+          <HeartFloat x={78} y={14} color={P.accent} delay="0.12s" />
+          <HeartFloat x={50} y={8} color={P.cheek} delay="0.06s" />
+        </g>
+      );
     default:
       return null;
   }
+}
+
+function HeartFloat({ x, y, color, delay }: { x: number; y: number; color: string; delay: string }) {
+  return (
+    <g
+      className="blob-heart"
+      style={{ animationDelay: delay } as React.CSSProperties}
+    >
+      <path
+        d={`M${x} ${y + 3} Q${x - 3} ${y} ${x - 4} ${y + 2} Q${x - 5} ${y - 1} ${x - 2} ${y - 1} Q${x} ${y - 3} ${x + 2} ${y - 1} Q${x + 5} ${y - 1} ${x + 4} ${y + 2} Q${x + 3} ${y} ${x} ${y + 3}Z`}
+        fill={color}
+        opacity={0.9}
+      />
+    </g>
+  );
 }
 
 function BlobSparkle({ x, y, size = 5, color = '#F5C24A', delay = '0s' }: {
@@ -416,4 +455,21 @@ function BlobSparkle({ x, y, size = 5, color = '#F5C24A', delay = '0s' }: {
       />
     </g>
   );
+}
+
+// ── usePettable ──────────────────────────────────────────────────────────────
+import { useCallback } from "react";
+
+export function usePettable(baseState: BlobState): {
+  blobState: BlobState;
+  onPet: () => void;
+} {
+  const [overrideState, setOverrideState] = useState<BlobState | null>(null);
+
+  const onPet = useCallback(() => {
+    setOverrideState("petted");
+    setTimeout(() => setOverrideState(null), 900);
+  }, []);
+
+  return { blobState: overrideState ?? baseState, onPet };
 }
