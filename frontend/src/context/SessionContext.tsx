@@ -30,19 +30,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const start = useCallback(async (type: string, durMins?: number, tabs: string[] = [], disabled: string[] = []) => {
-    let sessionId: string;
+    // Clear any leftover timer from a previous session
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+
+    let sid: string;
     try {
       const { data } = await apiStart({
         session_type: type,
         focus_duration_mins: durMins,
         allowed_tabs: tabs,
       });
-      sessionId = data.session_id;
+      sid = data.session_id;
     } catch (err) {
       console.error('[SessionContext] start failed:', err);
       throw err;
     }
-    setSessionId(sessionId);
+    setSessionId(sid);
     setSessionType(type);
     setAllowedTabs(tabs);
     setDisabledChecks(disabled);
@@ -54,15 +57,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const end = useCallback(async () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     try {
       const { data } = await apiEnd(sessionId!);
       setIsActive(false);
+      setSessionId(null);
       setSummary(data);
       updateCoins(data.coin_balance);
       return data;
     } catch (err) {
       setIsActive(false);
+      setSessionId(null);
       throw err;
     }
   }, [sessionId, updateCoins]);
