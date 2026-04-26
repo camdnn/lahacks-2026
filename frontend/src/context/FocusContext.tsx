@@ -4,7 +4,7 @@ import {
 } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useSession } from "./SessionContext";
-import { logEvent } from "../api/client";
+import { logEvent, BASE_URL } from "../api/client";
 
 // ── types ──────────────────────────────────────────────────────────────────────
 
@@ -490,7 +490,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isActive) return;
     const iv = setInterval(() => {
-      fetch('http://127.0.0.1:8000/state/push', {
+      fetch(`${BASE_URL}/state/push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(focusSyncRef.current),

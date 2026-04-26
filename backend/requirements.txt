@@ -1,14 +1,23 @@
-fastapi
-uvicorn[standard]
-databases[asyncpg]
-asyncpg
-python-dotenv
-passlib[bcrypt]
-python-jose[cryptography]
+# Bloom — Python CV data collection only.
+# All HTTP routing is handled by the Express server (server.js).
+
+# Computer vision
 opencv-python
 mediapipe
+numpy
+
+# HTTP client — pushes CV metrics to Express
+requests
+
+# Environment
+python-dotenv
+
+# Input monitoring (screen_monitor.py)
 pynput
 pillow
+
+# macOS only — for active window detection
 pyobjc-framework-Cocoa; sys_platform == "darwin"
+
+# Windows only
 pygetwindow; sys_platform == "win32"
-numpy
