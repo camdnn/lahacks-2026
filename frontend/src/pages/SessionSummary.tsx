@@ -5,14 +5,14 @@ import { Button } from "../components/ui/Button";
 import { Coins, Trophy } from "lucide-react";
 
 const DISTRACTOR_LABELS: Record<string, string> = {
-  microsleep: "😴 Microsleep",
-  yawn: "🥱 Yawn",
-  phone_check: "📱 Phone Check",
-  head_tilt: "↩ Head Tilt",
-  eyes_off_screen: "👀 Eyes Off Screen",
-  tab_switch: "⇄ Tab Switch",
-  disallowed_tab: "🚫 Wrong Tab",
-  rewind: "⏪ Rewind",
+  microsleep: "Microsleep",
+  yawn: "Yawn",
+  phone_check: "Phone Check",
+  head_tilt: "Head Tilt",
+  eyes_off_screen: "Eyes Off Screen",
+  tab_switch: "Tab Switch",
+  disallowed_tab: "Wrong Tab",
+  rewind: "Rewind",
 };
 
 interface SummaryData {

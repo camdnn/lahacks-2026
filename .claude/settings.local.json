@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(gunzip -c \"C:\\\\Users\\\\Sethy\\\\.claude\\\\projects\\\\c--Users-Sethy-code-LAHACKS-lahacks-2026\\\\b1525c0c-39ea-4bb5-8ceb-2df414f01e27\\\\tool-results\\\\webfetch-1777149385831-bkvhmm.bin\")",
+      "Bash(tar -t)"
+    ]
+  }
+}

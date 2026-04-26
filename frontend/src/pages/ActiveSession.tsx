@@ -120,7 +120,7 @@ export default function ActiveSession() {
             ? "bg-emerald-500/20 text-emerald-300"
             : "bg-red-500/20 text-red-300"
         }`}>
-          {focus.face_detected ? "👁 Face detected" : "⚠ Face not detected"}
+          {focus.face_detected ? "Face detected" : "Face not detected"}
         </div>
       </div>
 

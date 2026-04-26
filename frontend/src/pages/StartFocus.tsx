@@ -43,7 +43,7 @@ export default function StartFocus() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-lg">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <button onClick={() => navigate("/home")} className="flex cursor-pointer items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
           <ArrowLeft className="size-4" /> Back
         </button>
 
@@ -52,7 +52,7 @@ export default function StartFocus() {
         </div>
 
         <h1 className="text-3xl font-bold text-center mb-2">Start a Focus Session</h1>
-        <p className="text-muted-foreground text-center mb-8">Pudge will keep an eye on you 👀</p>
+        <p className="text-muted-foreground text-center mb-8">Pudge will keep an eye on you</p>
 
         {/* Session type */}
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -60,10 +60,10 @@ export default function StartFocus() {
             <button
               key={t}
               onClick={() => setSessionType(t)}
-              className={`rounded-xl border p-4 text-left transition-all ${
+              className={`rounded-xl border-2 p-4 text-left cursor-pointer transition-all hover:scale-[1.03] hover:shadow-md active:scale-[0.98] ${
                 sessionType === t
-                  ? "border-primary bg-primary/5"
-                  : "border-border/60 hover:border-border"
+                  ? "border-primary bg-[#FBF3E2] shadow-sm ring-2 ring-primary/20 text-primary"
+                  : "border-border/40 hover:border-border"
               }`}
             >
               <div className="text-xl mb-1">{t === "general" ? <Zap className="size-5" /> : <Globe className="size-5" />}</div>
@@ -83,10 +83,10 @@ export default function StartFocus() {
               <button
                 key={d}
                 onClick={() => setDuration(d)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                className={`flex items-center cursor-pointer gap-1.5 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all hover:scale-105 active:scale-95 ${
                   duration === d
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border/60 hover:border-border"
+                    ? "border-primary bg-[#FBF3E2] text-primary-foreground shadow-sm ring-2 ring-primary/30 scale-105"
+                    : "border-border/40 hover:border-border"
                 }`}
               >
                 <Clock className="size-3" /> {d}m
@@ -125,7 +125,7 @@ export default function StartFocus() {
 
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-        <Button onClick={handleStart} disabled={loading} className="w-full h-12 text-base font-semibold">
+        <Button onClick={handleStart} disabled={loading} className="w-full h-12 cursor-pointer text-base font-semibold transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]">
           {loading ? "Starting…" : `Start ${duration}min Session`}
         </Button>
       </div>
