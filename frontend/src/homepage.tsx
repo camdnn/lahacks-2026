@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Blob } from "./components/Blob";
 import { useAuth } from "./context/AuthContext";
-import { Coins, LogOut, ChevronDown } from "lucide-react";
+import { Coins, LogOut, ChevronDown, ShoppingBag } from "lucide-react";
 
 // ── Inject page-level styles once ────────────────────────────
 let landingStylesInjected = false;
@@ -184,6 +184,20 @@ function Nav({ onLogin }: { onLogin: () => void }) {
                 </div>
                 <hr className="border-border mb-2" />
                 <button
+                  onClick={() => { setProfileOpen(false); navigate("/store"); }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer mb-1"
+                  style={{ color: C.ink }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#FFF3D6")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  <ShoppingBag className="size-4" style={{ color: C.accent }} />
+                  Character Shop
+                </button>
+                <button
                   onClick={async () => {
                     setProfileOpen(false);
                     await logout();
@@ -258,8 +272,8 @@ function Hero({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 24px 80px",
+        justifyContent: "flex-start",
+        padding: "90px 24px 80px",
         overflow: "hidden",
       }}
     >
@@ -947,34 +961,29 @@ export default function Homepage() {
       >
         <div>© 2026 Bloom · focus, with friends</div>
         <div style={{ display: "flex", gap: 24 }}>
-          <button
-            onClick={cta}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 700,
-              color: C.soft,
-              fontFamily: "inherit",
-            }}
-          >
-            Sign in
-          </button>
-          <button
-            onClick={() => navigate("/analytics")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 700,
-              color: C.soft,
-              fontFamily: "inherit",
-            }}
-          >
-            Analytics
-          </button>
+          {[
+            { label: "Sign in", action: cta },
+            { label: "FAQ", action: () => navigate("/faq") },
+            { label: "About", action: () => navigate("/about") },
+            { label: "Store", action: () => navigate("/store") },
+            { label: "Analytics", action: () => navigate("/analytics") },
+          ].map(({ label, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.soft,
+                fontFamily: "inherit",
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </footer>
     </div>
