@@ -4,7 +4,7 @@ import { useSession } from "../context/SessionContext";
 import { useFocus } from "../context/FocusContext";
 import { useAuth } from "../context/AuthContext";
 import { Blob, type BlobState } from "../components/Blob";
-import { Download, ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
 
@@ -27,6 +27,22 @@ const C = {
   panelBorder: "rgba(234,215,190,0.12)",
 };
 
+// ── Inject keyframe CSS once ───────────────────────────────────
+let _asStylesInjected = false;
+function injectStyles() {
+  if (_asStylesInjected || typeof document === "undefined") return;
+  _asStylesInjected = true;
+  const s = document.createElement("style");
+  s.textContent = `
+    @keyframes as-fade-up   { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes as-fade-in   { from{opacity:0} to{opacity:1} }
+    @keyframes as-slide-in  { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes as-coin-pop  { 0%{transform:scale(1)} 40%{transform:scale(1.22)} 100%{transform:scale(1)} }
+    @keyframes as-score-pop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+  `;
+  document.head.appendChild(s);
+}
+
 const T_WINDOW_S = 60;
 
 function fmt(secs: number) {
@@ -44,6 +60,10 @@ const DISTRACTOR_LABELS: Record<string, string> = {
   tab_switch:      "Tab Switch",
 };
 
+const DISTRACTOR_WEIGHTS: Record<string, number> = {
+  microsleep: 4, phone_check: 5, yawn: 3, tab_switch: 2, eyes_off_screen: 2, head_tilt: 1,
+};
+
 function getBlobState(score: number, face: boolean): BlobState {
   if (!face) return "distracted";
   if (score >= 80) return "focused";
@@ -59,29 +79,34 @@ function SignalRow({
   const valColor = dot;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ width: 7, height: 7, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+      <div style={{ width: 7, height: 7, borderRadius: "50%", background: dot, flexShrink: 0, transition: "background 0.35s ease" }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(251,241,229,0.55)", lineHeight: 1 }}>{label}</div>
         <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(251,241,229,0.3)", marginTop: 1 }}>{hint}</div>
       </div>
-      <div style={{ fontSize: 12, fontWeight: 900, color: valColor, fontFamily: "monospace", flexShrink: 0 }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 900, color: valColor, fontFamily: "monospace", flexShrink: 0, transition: "color 0.35s ease" }}>{value}</div>
     </div>
   );
 }
 
 export default function ActiveSession() {
+  injectStyles();
   const navigate = useNavigate();
-  const { durationMins, elapsed, end, isActive } = useSession();
+  const { durationMins, elapsed, end, isActive, characterKey } = useSession();
   const focus = useFocus();
   const { profile, updateCoins, logout } = useAuth();
 
-  const activeChar = getCharacter(profile?.active_character ?? "cream_wide");
+  const activeChar = getCharacter(characterKey);
 
   const [ending, setEnding] = useState(false);
   const [poked, setPoked] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [coinPop, setCoinPop] = useState(false);
+  const [scorePop, setScorePop] = useState(false);
+  const prevCoinsRef = useRef(focus.coinsEarned);
+  const prevScoreRef = useRef(focus.focus_score);
 
   const videoRef       = useRef<HTMLVideoElement>(null);
   const canvasRef      = useRef<HTMLCanvasElement>(null);
@@ -116,6 +141,28 @@ export default function ActiveSession() {
   useEffect(() => {
     if (durationMins && elapsed >= durationMins * 60 && !ending) handleEnd();
   }, [elapsed, durationMins]);
+
+  // Coin pop — fires when coins increment
+  useEffect(() => {
+    if (focus.coinsEarned > prevCoinsRef.current) {
+      setCoinPop(true);
+      const t = setTimeout(() => setCoinPop(false), 420);
+      prevCoinsRef.current = focus.coinsEarned;
+      return () => clearTimeout(t);
+    }
+    prevCoinsRef.current = focus.coinsEarned;
+  }, [focus.coinsEarned]);
+
+  // Score pop — fires when score improves by ≥1 point
+  useEffect(() => {
+    if (Math.round(focus.focus_score) > Math.round(prevScoreRef.current)) {
+      setScorePop(true);
+      const t = setTimeout(() => setScorePop(false), 350);
+      prevScoreRef.current = focus.focus_score;
+      return () => clearTimeout(t);
+    }
+    prevScoreRef.current = focus.focus_score;
+  }, [focus.focus_score]);
 
   // ── Landmark canvas overlay ────────────────────────────────────────────────
   useEffect(() => {
@@ -190,6 +237,7 @@ export default function ActiveSession() {
   const handleEnd = async () => {
     if (ending) return;
     setEnding(true);
+    const capturedCoins = focus.coinsEarned;
     const timelines = focus.getTimelines();
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -197,15 +245,15 @@ export default function ActiveSession() {
       );
       const summary = await Promise.race([end(), timeoutPromise]);
       goingToSummary.current = true;
-      navigate("/summary", { state: { summary: { ...summary, focus_timeline: timelines.focus, event_timeline: timelines.events } } });
+      navigate("/summary", { state: { summary: { ...summary, focus_timeline: timelines.focus, event_timeline: timelines.events }, characterKey } });
     } catch (err) {
       console.error("[handleEnd] falling back to local summary:", err);
-      const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
+      const newBalance = (profile?.coin_balance ?? 0) + capturedCoins;
       updateCoins(newBalance);
       const localSummary = {
         duration_mins: durationMins ?? Math.round(elapsed / 60),
         focus_score: focus.focus_score,
-        coins_earned: focus.coinsEarned,
+        coins_earned: capturedCoins,
         coin_balance: newBalance,
         top_distractors: focus.top_distractors.map(([type, count]) => ({ type, count, impact: 0 })),
         improvement_tips: {},
@@ -214,7 +262,7 @@ export default function ActiveSession() {
         event_timeline: timelines.events,
       };
       goingToSummary.current = true;
-      navigate("/summary", { state: { summary: localSummary } });
+      navigate("/summary", { state: { summary: localSummary, characterKey } });
     } finally {
       setEnding(false);
     }
@@ -229,8 +277,8 @@ export default function ActiveSession() {
 
   const topDistractors = Object.entries(focus.counts)
     .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4);
+    .sort((a, b) => (b[1] * (DISTRACTOR_WEIGHTS[b[0]] ?? 0)) - (a[1] * (DISTRACTOR_WEIGHTS[a[0]] ?? 0)))
+    .slice(0, 5);
 
   // Human-readable signal interpretations
   const eyeStatus   = focus.ear > 0.22 ? "good" : focus.ear > 0.18 ? "warn" : "bad";
@@ -248,8 +296,8 @@ export default function ActiveSession() {
 
       {/* ── Exit dialog ── */}
       {showExitDialog && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(30,15,6,0.6)", backdropFilter: "blur(4px)" }}>
-          <div style={{ background: C.card, borderRadius: 24, border: `1.5px solid ${C.border}`, padding: 28, maxWidth: 360, width: "100%", margin: "0 16px", boxShadow: "0 16px 48px rgba(60,42,27,0.18)" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(30,15,6,0.6)", backdropFilter: "blur(4px)", animation: "as-fade-in 0.18s ease both" }}>
+          <div style={{ background: C.card, borderRadius: 24, border: `1.5px solid ${C.border}`, padding: 28, maxWidth: 360, width: "100%", margin: "0 16px", boxShadow: "0 16px 48px rgba(60,42,27,0.18)", animation: "as-fade-up 0.22s cubic-bezier(.22,1,.36,1) both" }}>
             <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 6 }}>End your session?</h2>
             <p style={{ fontSize: 14, fontWeight: 600, color: C.soft, marginBottom: 24, lineHeight: 1.6 }}>
               Your progress and coins will be saved and you'll see your summary.
@@ -282,7 +330,7 @@ export default function ActiveSession() {
           <div style={{ width: 32, height: 32, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(240,143,96,0.35)" }}>
             <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.accentSoft }} />
           </div>
-          <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: C.ink }}>Bloom</span>
+          <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: C.ink }}>Focus Friends</span>
         </button>
 
         <div style={{ position: "relative" }} ref={dropdownRef}>
@@ -318,15 +366,6 @@ export default function ActiveSession() {
         </div>
       </header>
 
-      {/* ── Desktop download hint ── */}
-      <a
-        href={`${(import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "")}/download/overlay`}
-        download="Pudge.dmg"
-        style={{ position: "fixed", bottom: 20, right: 20, zIndex: 40, display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 999, fontSize: 12, fontWeight: 700, color: C.soft, textDecoration: "none", boxShadow: "0 2px 12px rgba(60,42,27,0.08)", transition: "all 0.15s" }}
-      >
-        <Download style={{ width: 12, height: 12, flexShrink: 0 }} />
-        Get Pudge for desktop
-      </a>
 
       {/* ── Main grid ── */}
       <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
@@ -334,7 +373,7 @@ export default function ActiveSession() {
         {/* ── Left — camera + signals ── */}
         <div
           className="hidden lg:flex"
-          style={{ flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, gap: 20, background: C.panelBg, position: "relative", overflow: "hidden" }}
+          style={{ flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, gap: 20, background: C.panelBg, position: "relative", overflow: "hidden", animation: "as-fade-up 0.45s cubic-bezier(.22,1,.36,1) both" }}
         >
           {/* Warm vignette */}
           <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "80%", height: 200, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(240,143,96,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
@@ -401,14 +440,14 @@ export default function ActiveSession() {
               />
             </svg>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-              <span style={{ fontSize: 28, fontWeight: 900, color: scoreColor }}>{Math.round(score)}</span>
+              <span style={{ fontSize: 28, fontWeight: 900, color: scoreColor, transition: "color 0.5s", display: "inline-block", animation: scorePop ? "as-score-pop 0.35s cubic-bezier(.34,1.2,.64,1)" : undefined }}>{Math.round(score)}</span>
               <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(251,241,229,0.45)" }}>focus</span>
             </div>
           </div>
 
           {/* Mascot */}
           <div style={{ zIndex: 1, cursor: "pointer", userSelect: "none" }} onClick={handlePoke}>
-            <Blob palette="cream" shape="wide" size={140}
+            <Blob palette={activeChar.palette} shape={activeChar.shape} size={140}
               state={poked ? "poked" : getBlobState(score, focus.face_detected)}
               eyeTarget={mousePos} showGround
             />
@@ -416,7 +455,7 @@ export default function ActiveSession() {
         </div>
 
         {/* ── Right — timer + stats ── */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, gap: 28 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, gap: 28, animation: "as-fade-up 0.45s cubic-bezier(.22,1,.36,1) 0.08s both" }}>
 
           {/* Timer */}
           <div style={{ textAlign: "center" }}>
@@ -428,7 +467,7 @@ export default function ActiveSession() {
             </p>
             {durationMins && (
               <div style={{ marginTop: 14, height: 8, width: 260, background: C.border, borderRadius: 999, overflow: "hidden", margin: "14px auto 0" }}>
-                <div style={{ height: "100%", background: C.accent, borderRadius: 999, width: `${progress * 100}%`, transition: "width 1s linear" }} />
+                <div style={{ height: "100%", background: C.accent, borderRadius: 999, width: `${progress * 100}%`, transition: "width 1s linear", willChange: "width" }} />
               </div>
             )}
           </div>
@@ -436,8 +475,10 @@ export default function ActiveSession() {
           {/* Coin counter */}
           <div style={{ textAlign: "center" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              <CartoonCoin size={34} />
-              <span style={{ fontSize: 44, fontWeight: 900, color: C.yellow, fontVariantNumeric: "tabular-nums" }}>{focus.coinsEarned}</span>
+              <div style={{ display: "inline-block", animation: coinPop ? "as-coin-pop 0.42s cubic-bezier(.34,1.2,.64,1)" : undefined }}>
+                <CartoonCoin size={34} />
+              </div>
+              <span style={{ fontSize: 44, fontWeight: 900, color: C.yellow, fontVariantNumeric: "tabular-nums", display: "inline-block", animation: coinPop ? "as-coin-pop 0.42s cubic-bezier(.34,1.2,.64,1)" : undefined }}>{focus.coinsEarned}</span>
               {focus.multiplier > 1 && (
                 <span style={{ fontSize: 13, fontWeight: 900, color: C.yellow, background: C.yellowSoft, border: `1.5px solid ${C.yellow}`, borderRadius: 999, padding: "4px 10px" }}>
                   {focus.multiplier}×
@@ -460,7 +501,7 @@ export default function ActiveSession() {
               </span>
             </div>
             <div style={{ height: 8, background: C.border, borderRadius: 999, overflow: "hidden" }}>
-              <div style={{ height: "100%", background: C.yellow, borderRadius: 999, width: `${focus.nextCoinPct * 100}%`, transition: "width 0.3s" }} />
+              <div style={{ height: "100%", background: C.yellow, borderRadius: 999, width: `${focus.nextCoinPct * 100}%`, transition: "width 0.3s ease", willChange: "width" }} />
             </div>
           </div>
 
@@ -472,7 +513,7 @@ export default function ActiveSession() {
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{fmt(focus.secsToScoreRecovery)}</span>
               </div>
               <div style={{ height: 8, background: C.border, borderRadius: 999, overflow: "hidden" }}>
-                <div style={{ height: "100%", background: C.green, borderRadius: 999, width: `${((T_WINDOW_S - focus.secsToScoreRecovery) / T_WINDOW_S) * 100}%`, transition: "width 1s linear" }} />
+                <div style={{ height: "100%", background: C.green, borderRadius: 999, width: `${((T_WINDOW_S - focus.secsToScoreRecovery) / T_WINDOW_S) * 100}%`, transition: "width 1s linear", willChange: "width" }} />
               </div>
             </div>
           )}
@@ -489,7 +530,7 @@ export default function ActiveSession() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {topDistractors.map(([type, count], i) => (
-                  <div key={type} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 14, background: C.card, border: `1.5px solid ${C.border}` }}>
+                  <div key={type} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 14, background: C.card, border: `1.5px solid ${C.border}`, animation: `as-slide-in 0.22s cubic-bezier(.22,1,.36,1) ${i * 0.04}s both` }}>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 800 }}>{DISTRACTOR_LABELS[type] ?? type}</span>
                     <span style={{ fontSize: 13, fontWeight: 900, color: i === 0 ? C.red : C.soft, background: i === 0 ? C.redSoft : C.border, borderRadius: 999, padding: "2px 10px" }}>
                       ×{count}

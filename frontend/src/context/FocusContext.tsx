@@ -100,7 +100,7 @@ function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 // ── constants ──────────────────────────────────────────────────────────────────
 
 const WEIGHTS: Record<string, number> = {
-  microsleep:     10,
+  microsleep:      4,
   phone_check:     5,
   yawn:            3,
   tab_switch:      2,
@@ -524,16 +524,16 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   }, [data.face_detected, data.focus_score]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !sessionId) return;
     const iv = setInterval(() => {
       fetch(`${BASE_URL}/state/push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(focusSyncRef.current),
+        body: JSON.stringify({ session_id: sessionId, ...focusSyncRef.current }),
       }).catch(() => {});
     }, 2000);
     return () => clearInterval(iv);
-  }, [isActive]);
+  }, [isActive, sessionId]);
 
   // ── Persist eye_data snapshot to DB every 30s ──────────────────────────────
   const snapshotRef = useRef({ ear: 0.3, face_detected: false, head_tilt: 0, blink_rate: 0 });

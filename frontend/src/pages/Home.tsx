@@ -36,7 +36,7 @@ export default function HomeDashboard() {
           }}>
             <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
           </div>
-          <span className="font-black tracking-tight">Bloom</span>
+          <span className="font-black tracking-tight">Focus Friends</span>
         </button>
 
         {/* Store button — centered */}

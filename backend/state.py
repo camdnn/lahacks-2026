@@ -3,11 +3,11 @@ from datetime import datetime
 
 DISTRACTOR_WEIGHTS = {
     "microsleep":      10,
-    "phone_check":      5,
+    "phone_check":      2,
     "disallowed_tab":   4,
     "yawn":             3,
     "tab_switch":       2,
-    "eyes_off_screen":  2,
+    "eyes_off_screen":  1,
     "rewind":           2,
     "head_tilt":        1,
 }
@@ -24,6 +24,7 @@ class SessionState:
             self.started_at = None
             self.counts: dict[str, int] = {k: 0 for k in DISTRACTOR_WEIGHTS}
             self.focus_score: float = 100.0
+            self._top_distractors_cache: list = []
             # Latest CV metrics (updated every frame)
             self.ear: float = 0.3
             self.mar: float = 0.1
@@ -79,15 +80,16 @@ class SessionState:
             for k in self.counts
         )
         self.focus_score = max(0.0, 100.0 - deducted)
+        # Rebuild cache so snapshot() never needs to sort
+        self._top_distractors_cache = sorted(
+            ((k, v) for k, v in self.counts.items() if v > 0),
+            key=lambda x: x[1] * DISTRACTOR_WEIGHTS[x[0]],
+            reverse=True,
+        )[:5]
 
     def top_distractors(self, n: int = 5):
         with self._lock:
-            ranked = sorted(
-                ((k, v) for k, v in self.counts.items() if v > 0),
-                key=lambda x: x[1] * DISTRACTOR_WEIGHTS[x[0]],
-                reverse=True,
-            )
-            return ranked[:n]
+            return self._top_distractors_cache[:n]
 
     def start_calibration(self):
         with self._lock:

@@ -13,6 +13,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
   'app://.',              // Electron renderer
+  // Add your Vercel URL via ALLOWED_ORIGIN env var (e.g. https://your-app.vercel.app)
+  ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
 ];
 
 app.use(cors({

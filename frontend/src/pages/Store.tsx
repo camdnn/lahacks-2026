@@ -342,7 +342,7 @@ export default function Store() {
               marginBottom: 2,
             }}
           >
-            Bloom
+            Focus Friends
           </div>
           <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.4 }}>
             Character Shop

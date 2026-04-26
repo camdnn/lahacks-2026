@@ -117,7 +117,7 @@ function RegisterPage() {
           }}>
             <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
           </div>
-          <span className="font-black text-lg tracking-tight" style={{ color: "#3D2A1B" }}>Bloom</span>
+          <span className="font-black text-lg tracking-tight" style={{ color: "#3D2A1B" }}>Focus Friends</span>
           <span className="text-xs font-semibold" style={{ color: "#806550" }}>focus, with friends</span>
         </Link>
 
@@ -157,7 +157,7 @@ function RegisterPage() {
             }}>
               <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
             </div>
-            <span className="font-black text-lg tracking-tight">Bloom</span>
+            <span className="font-black text-lg tracking-tight">Focus Friends</span>
           </div>
 
           <div className="text-center mb-8">

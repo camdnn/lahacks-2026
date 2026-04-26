@@ -11,7 +11,8 @@ interface SessionCtx {
   elapsed: number;
   isActive: boolean;
   summary: object | null;
-  start: (type: string, durationMins?: number, allowedTabs?: string[], disabledChecks?: string[]) => Promise<void>;
+  characterKey: string;
+  start: (type: string, durationMins?: number, allowedTabs?: string[], disabledChecks?: string[], characterKey?: string) => Promise<void>;
   end: () => Promise<object>;
 }
 
@@ -27,9 +28,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [elapsed, setElapsed]           = useState(0);
   const [isActive, setIsActive]         = useState(false);
   const [summary, setSummary]           = useState<object | null>(null);
+  const [characterKey, setCharacterKey] = useState("cream_wide");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const start = useCallback(async (type: string, durMins?: number, tabs: string[] = [], disabled: string[] = []) => {
+  const start = useCallback(async (type: string, durMins?: number, tabs: string[] = [], disabled: string[] = [], charKey: string = "cream_wide") => {
     // Clear any leftover timer from a previous session
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
 
@@ -50,6 +52,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAllowedTabs(tabs);
     setDisabledChecks(disabled);
     setDurationMins(durMins ?? null);
+    setCharacterKey(charKey);
     setElapsed(0);
     setIsActive(true);
     setSummary(null);
@@ -58,16 +61,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const end = useCallback(async () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    const sid = sessionId;
+    setIsActive(false);
+    setSessionId(null);
     try {
-      const { data } = await apiEnd(sessionId!);
-      setIsActive(false);
-      setSessionId(null);
+      const { data } = await apiEnd(sid!);
       setSummary(data);
       updateCoins(data.coin_balance);
       return data;
     } catch (err) {
-      setIsActive(false);
-      setSessionId(null);
       throw err;
     }
   }, [sessionId, updateCoins]);
@@ -75,7 +77,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return (
     <SessionContext.Provider value={{
       sessionId, sessionType, allowedTabs, disabledChecks, durationMins,
-      elapsed, isActive, summary, start, end,
+      elapsed, isActive, summary, characterKey, start, end,
     }}>
       {children}
     </SessionContext.Provider>

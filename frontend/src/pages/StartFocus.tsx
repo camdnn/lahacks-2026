@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
+import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from "../components/ui/Label";
 import { Blob, type BlobState } from "../components/Blob";
+import { CHARACTERS, getCharacter } from "../data/characters";
 import { ArrowLeft, BookOpen, Check, Clock, Code2, Globe, PenLine, Settings2, Users, Zap } from "lucide-react";
 
 const DURATIONS = [15, 25, 45, 60, 90];
@@ -31,6 +33,9 @@ type Step = "config" | "calibrating" | "done";
 export default function StartFocus() {
   const navigate = useNavigate();
   const { start } = useSession();
+  const { profile } = useAuth();
+  const ownedChars = profile?.owned_characters ?? ["cream_wide"];
+  const [selectedChar, setSelectedChar] = useState(profile?.active_character ?? "cream_wide");
   const [step, setStep]                 = useState<Step>("config");
   const [sessionType, setSessionType]   = useState<"general" | "specialized">("general");
   const [duration, setDuration]         = useState(25);
@@ -121,7 +126,7 @@ export default function StartFocus() {
     setLoading(true);
     setError("");
     try {
-      await start(sessionType, duration, sessionType === "specialized" ? allowedTabs : [], finalDisabled);
+      await start(sessionType, duration, sessionType === "specialized" ? allowedTabs : [], finalDisabled, selectedChar);
       navigate("/session");
     } catch {
       setError("Failed to start session. Is the backend running?");
@@ -135,6 +140,8 @@ export default function StartFocus() {
     step === "calibrating" ? "focused" :
     step === "done"        ? "cheering" :
     loading                ? "walking"  : "encouraging";
+
+  const activeCharData = getCharacter(selectedChar);
 
   // ── Calibration overlay ──────────────────────────────────────────────────
   if (step === "calibrating") {
@@ -176,8 +183,8 @@ export default function StartFocus() {
         </div>
 
         <Blob
-          palette="cream"
-          shape="wide"
+          palette={activeCharData.palette}
+          shape={activeCharData.shape}
           size={140}
           state={calibBlink ? "sleeping" : calibStream ? "cheering" : "focused"}
           eyeTarget={mousePos}
@@ -220,11 +227,46 @@ export default function StartFocus() {
         </button>
 
         <div className="flex justify-center mb-8">
-          <Blob palette="cream" shape="wide" size={130} state={pudgeState} eyeTarget={mousePos} showGround />
+          <Blob palette={activeCharData.palette} shape={activeCharData.shape} size={130} state={pudgeState} eyeTarget={mousePos} showGround />
         </div>
 
         <h1 className="text-3xl font-black text-center tracking-tight mb-2">Start a Focus Session</h1>
-        <p className="text-muted-foreground text-center mb-8 font-semibold">Pudge will keep an eye on you</p>
+        <p className="text-muted-foreground text-center mb-8 font-semibold">{activeCharData.name} will keep an eye on you</p>
+
+        {/* Character picker */}
+        <div className="mb-6">
+          <Label className="mb-3 block font-black text-sm uppercase tracking-wide text-muted-foreground">
+            Choose Your Buddy
+          </Label>
+          <div className="flex gap-3 overflow-x-auto p-2">
+            {CHARACTERS.map((char) => {
+              const owned = ownedChars.includes(char.key);
+              const selected = selectedChar === char.key;
+              return (
+                <button
+                  key={char.key}
+                  onClick={() => owned && setSelectedChar(char.key)}
+                  disabled={!owned}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 shrink-0 w-20 transition-all ${
+                    selected
+                      ? "border-primary bg-accent shadow-sm scale-105"
+                      : owned
+                        ? "border-border hover:border-primary cursor-pointer hover:scale-[1.02]"
+                        : "border-border opacity-40 cursor-not-allowed"
+                  }`}
+                >
+                  <Blob palette={char.palette} shape={char.shape} size={48} state="idle" showGround={false} />
+                  <span className={`text-xs font-black leading-tight text-center ${selected ? "text-primary" : "text-muted-foreground"}`}>
+                    {char.name}
+                  </span>
+                  {!owned && (
+                    <span className="text-[10px] font-bold text-muted-foreground">{char.price}🪙</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Session type */}
         <div className="grid grid-cols-2 gap-3 mb-6">

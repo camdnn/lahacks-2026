@@ -48,8 +48,8 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   const raw = data as Record<string, unknown>;
   return {
     ...raw,
-    owned_characters: Array.isArray(raw.owned_characters) ? raw.owned_characters as string[] : ["cream_wide"],
-    active_character: typeof raw.active_character === "string" ? raw.active_character : "cream_wide",
+    owned_characters: Array.isArray(raw.owned_characters) ? raw.owned_characters as string[] : ["peach_classic"],
+    active_character: typeof raw.active_character === "string" ? raw.active_character : "peach_classic",
   } as Profile;
 }
 
@@ -60,19 +60,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, s) => {
+    let mounted = true;
+
+    // Bootstrap: read the cached session immediately so loading never gets stuck
+    // waiting for onAuthStateChange to fire.
+    const bootstrap = async () => {
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (!mounted) return;
         setSession(s);
-        setLoading(false);
+        if (s) {
+          const p = await fetchProfile(s.user.id).catch(() => null);
+          if (mounted) setProfile(p);
+        }
+      } catch {
+        // getSession() is non-throwing in practice; guard against the unexpected
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    bootstrap();
+
+    // Handle all subsequent auth events (sign-in, sign-out, token refresh, etc.)
+    // INITIAL_SESSION is skipped — bootstrap() already covered it.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, s) => {
+        if (event === "INITIAL_SESSION") return;
+        if (!mounted) return;
+        setSession(s);
         if (s) {
           const p = await fetchProfile(s.user.id);
-          setProfile(p ? { ...p, email: p.email ?? s.user.email ?? null } : null);
+          if (mounted) setProfile(p);
         } else {
-          setProfile(null);
+          if (mounted) setProfile(null);
         }
       }
     );
-    return () => subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const resetTimeout = useCallback(() => {

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { supabase }    from '../lib/supabase.js';
-import { state }       from '../lib/state.js';
+import { getState }    from '../lib/state.js';
 
 const router = Router();
 
@@ -10,7 +10,6 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const { session_id, event_type, duration_ms, metadata } = req.body;
 
-    // Verify the session belongs to this user before writing
     const { data: session, error: fetchErr } = await supabase
       .from('sessions')
       .select('session_id')
@@ -30,8 +29,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
 
-    // Sync distraction count into in-memory state for session-end summary
-    state.recordEvent(event_type);
+    getState(session_id)?.recordEvent(event_type);
 
     res.json({ ok: true });
   } catch (err) {

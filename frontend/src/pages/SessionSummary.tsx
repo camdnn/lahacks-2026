@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Blob, usePettable } from "../components/Blob";
+import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
 import { RotateCcw, Home } from "lucide-react";
 
@@ -33,7 +34,7 @@ const TIPS: Record<string, string> = {
 };
 
 const DISTRACTOR_LABELS: Record<string, string> = {
-  microsleep:      "Microsleep detected",
+  microsleep:      "Eyes Closed",
   yawn:            "Yawning",
   phone_check:     "Phone check",
   head_tilt:       "Head tilt",
@@ -147,6 +148,7 @@ export default function SessionSummary() {
   const navigate = useNavigate();
   const { state: routeState } = useLocation();
   const summary: SummaryData | null = routeState?.summary ?? null;
+  const char = getCharacter(routeState?.characterKey ?? "cream_wide");
 
   const [animScore, setAnimScore] = useState(0);
   const [animCoins, setAnimCoins] = useState(0);
@@ -202,16 +204,37 @@ export default function SessionSummary() {
   const blobBase = entered ? grade.blob : "cheering";
   const { blobState, onPet } = usePettable(blobBase);
 
-  const topDistractors = (
-    summary.top_distractors.length > 0
-      ? summary.top_distractors
+  const SUMMARY_WEIGHTS: Record<string, number> = {
+    microsleep: 4, phone_check: 5, yawn: 3, tab_switch: 2, eyes_off_screen: 2, head_tilt: 1,
+  };
+
+  const topDistractors = (() => {
+    const fromBackend = summary.top_distractors ?? [];
+    const seen = new Set(fromBackend.map((d: { type: string }) => d.type));
+    // Add any events from event_counts that backend's top_distractors missed
+    const fromCounts = Object.entries(summary.event_counts ?? {})
+      .filter(([type, v]) => (v as number) > 0 && !seen.has(type))
+      .map(([type, count]) => ({
+        type,
+        count: count as number,
+        impact: (count as number) * (SUMMARY_WEIGHTS[type] ?? 1),
+      }));
+    const merged = fromBackend.length > 0
+      ? [...fromBackend, ...fromCounts]
       : Object.entries(summary.event_counts ?? {})
-          .filter(([, v]) => v > 0)
+          .filter(([, v]) => (v as number) > 0)
           .slice(0, 5)
-          .map(([type, count]) => ({ type, count, impact: 0 }))
-  )
-    .slice()
-    .sort((a, b) => (b.impact * b.count - a.impact * a.count) || (b.count - a.count));
+          .map(([type, count]) => ({
+            type,
+            count: count as number,
+            impact: (count as number) * (SUMMARY_WEIGHTS[type] ?? 1),
+          }));
+    return merged
+      .slice()
+      .sort((a, b) =>
+        (b.impact * b.count - a.impact * a.count) || (b.count - a.count)
+      );
+  })();
 
   const totalEvents = topDistractors.reduce((sum, d) => sum + d.count, 0);
 
@@ -233,12 +256,12 @@ export default function SessionSummary() {
           <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(255,255,255,0.6)" }} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", opacity: 0.9 }}>Bloom</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", opacity: 0.9 }}>Focus Friends</span>
         </div>
 
         {/* Mascot */}
         <div style={{ position: "relative", zIndex: 1, cursor: "pointer" }} title="Pet Pudge!" onClick={onPet}>
-          <Blob palette="cream" shape="wide" size={160} state={blobState} eyeTarget={mousePos} showGround />
+          <Blob palette={char.palette} shape={char.shape} size={160} state={blobState} eyeTarget={mousePos} showGround />
         </div>
 
         {/* Grade text */}
@@ -248,7 +271,7 @@ export default function SessionSummary() {
           </h1>
           <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.75)", marginBottom: 4 }}>{grade.sub}</p>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>
-            {summary.duration_mins}min session complete · click Pudge to celebrate!
+            {summary.duration_mins}min session complete · click {char.name} to celebrate!
           </p>
         </div>
       </div>
