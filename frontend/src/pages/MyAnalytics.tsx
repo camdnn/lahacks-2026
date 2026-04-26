@@ -20,6 +20,8 @@ function injectStyles() {
     .ma-session { background:#FFFAF1; border:1.5px solid #EAD7BE; border-radius:14px; padding:16px 20px;
       transition:box-shadow 0.15s, transform 0.15s; }
     .ma-session:hover { box-shadow:0 4px 20px rgba(60,42,27,0.08); transform:translateY(-1px); }
+    .sessions-body { overflow:hidden; max-height:0; opacity:0; transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease; }
+    .sessions-body.open { max-height:5000px; opacity:1; transition:max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease 0.05s; }
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:#EAD7BE; border-radius:3px; }
@@ -175,7 +177,7 @@ function ScoreRing({ score, size = 60 }: { score: number; size?: number }) {
           style={{ transition: "stroke-dashoffset 1s cubic-bezier(.34,1.2,.64,1)" }} />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: size * 0.27, fontWeight: 900, letterSpacing: -1, lineHeight: 1 }}>
+        <span style={{ fontSize: size * 0.33, fontWeight: 900, letterSpacing: 0, lineHeight: 1 }}>
           {Math.round(disp)}
         </span>
       </div>
@@ -248,6 +250,7 @@ export default function MyAnalytics() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [expandedTips, setExpandedTips] = useState<Set<string>>(new Set());
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const toggleTip = (title: string) =>
     setExpandedTips(prev => {
       const next = new Set(prev);
@@ -412,7 +415,7 @@ export default function MyAnalytics() {
       </header>
 
       {/* ── Two-column dashboard ── */}
-      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 40px 80px", display: "grid", gridTemplateColumns: "1fr 420px", gap: 28, alignItems: "start" }}>
+      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 40px 80px", display: "grid", gridTemplateColumns: "1fr 420px", gap: 28, alignItems: "stretch" }}>
 
         {/* ─── LEFT: Stats + Sessions ─── */}
         <div className="ma-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -469,45 +472,85 @@ export default function MyAnalytics() {
             )}
           </div>
 
-          {/* Sessions list */}
-          <div className="ma-card" style={{ padding: "22px 24px" }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: C.soft, marginBottom: 16 }}>
-              All Sessions
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {sessions.map(s => {
-                const score = s.focus_score ?? 0;
-                const dur = s.focus_duration_mins
-                  ? `${s.focus_duration_mins} min`
-                  : s.ended_at
-                    ? `${Math.round((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000)} min`
+          {/* Sessions list — collapsible */}
+          <div className="ma-card" style={{ overflow: "hidden", marginTop: "auto" }}>
+            <button
+              onClick={() => setSessionsOpen(o => !o)}
+              style={{ width: "100%", display: "flex", flexDirection: "column", padding: "16px 24px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+            >
+              {/* Label row */}
+              <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: C.soft }}>
+                    All Sessions
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 800, background: C.accentSoft, color: C.accent, borderRadius: 999, padding: "2px 9px" }}>
+                    {sessions.length}
+                  </span>
+                </div>
+                <ChevronDown size={15} style={{ color: C.soft, flexShrink: 0, transform: sessionsOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+              </div>
+              {/* Recent session preview — collapsed only */}
+              {!sessionsOpen && sessions.length > 0 && (() => {
+                const r = sessions[0];
+                const score = r.focus_score ?? 0;
+                const dur = r.focus_duration_mins
+                  ? `${r.focus_duration_mins}m`
+                  : r.ended_at
+                    ? `${Math.round((new Date(r.ended_at).getTime() - new Date(r.started_at).getTime()) / 60000)}m`
                     : "—";
                 return (
-                  <div key={s.session_id} className="ma-session">
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <ScoreRing score={score} size={50} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: -0.3 }}>{fmtDate(s.started_at)}</div>
-                          {s.session_type && s.session_type !== "general" && (
-                            <div style={{ padding: "2px 8px", borderRadius: 999, background: C.accentSoft, fontSize: 11, fontWeight: 800, color: C.accent }}>
-                              {SESSION_TYPE_LABELS[s.session_type] ?? s.session_type}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.soft, marginTop: 2 }}>
-                          {fmtTime(s.started_at)} · {dur}
-                        </div>
-                      </div>
-                      {(s.coins_earned ?? 0) > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, background: C.yellowSoft, fontSize: 12, fontWeight: 900, color: "#C97A3F", flexShrink: 0 }}>
-                          <Coins size={12} /> {s.coins_earned}
-                        </div>
-                      )}
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
+                    <ScoreRing score={score} size={44} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: -0.3, color: C.ink }}>{fmtDate(r.started_at)}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.soft, marginTop: 2 }}>{fmtTime(r.started_at)} · {dur}</div>
                     </div>
+                    {(r.coins_earned ?? 0) > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 10px", borderRadius: 999, background: C.yellowSoft, fontSize: 12, fontWeight: 900, color: "#C97A3F", flexShrink: 0 }}>
+                        <Coins size={11} /> {r.coins_earned}
+                      </div>
+                    )}
                   </div>
                 );
-              })}
+              })()}
+            </button>
+            <div className={`sessions-body${sessionsOpen ? " open" : ""}`}>
+              <div style={{ borderTop: `1.5px solid ${C.border}`, padding: "14px 24px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+                {sessions.map(s => {
+                  const score = s.focus_score ?? 0;
+                  const dur = s.focus_duration_mins
+                    ? `${s.focus_duration_mins} min`
+                    : s.ended_at
+                      ? `${Math.round((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000)} min`
+                      : "—";
+                  return (
+                    <div key={s.session_id} className="ma-session">
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <ScoreRing score={score} size={50} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: -0.3 }}>{fmtDate(s.started_at)}</div>
+                            {s.session_type && s.session_type !== "general" && (
+                              <div style={{ padding: "2px 8px", borderRadius: 999, background: C.accentSoft, fontSize: 11, fontWeight: 800, color: C.accent }}>
+                                {SESSION_TYPE_LABELS[s.session_type] ?? s.session_type}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: C.soft, marginTop: 2 }}>
+                            {fmtTime(s.started_at)} · {dur}
+                          </div>
+                        </div>
+                        {(s.coins_earned ?? 0) > 0 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, background: C.yellowSoft, fontSize: 12, fontWeight: 900, color: "#C97A3F", flexShrink: 0 }}>
+                            <Coins size={12} /> {s.coins_earned}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -569,7 +612,7 @@ export default function MyAnalytics() {
             )}
             {topDistractions.length > 0 && (
               <p style={{ margin: "14px 0 0", paddingTop: 12, borderTop: `1.5px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.soft, lineHeight: 1.5 }}>
-                Impact = count × weight. Microsleeps score 10×, head tilts 1×.
+                Impact = count × weight.
               </p>
             )}
           </div>
