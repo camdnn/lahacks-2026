@@ -4,6 +4,8 @@ import { Blob, usePettable } from "../components/Blob";
 import { Button } from "../components/ui/Button";
 import { Trophy, Home, RotateCcw } from "lucide-react";
 import { CartoonCoin } from "../components/CartoonCoin";
+import { useAuth } from "../context/AuthContext";
+import { getCharacter } from "../data/characters";
 
 const TIPS: Record<string, string> = {
   microsleep:      "Try intentional blinking every few minutes to reduce eye strain.",
@@ -107,6 +109,8 @@ export default function SessionSummary() {
   const navigate = useNavigate();
   const { state: routeState } = useLocation();
   const summary: SummaryData | null = routeState?.summary ?? null;
+  const { profile } = useAuth();
+  const activeChar = getCharacter(profile?.active_character ?? "cream_wide");
 
   const [animScore, setAnimScore] = useState(0);
   const [animCoins, setAnimCoins] = useState(0);
@@ -165,7 +169,7 @@ export default function SessionSummary() {
     summary.focus_score >= 90
       ? {
           label: "Excellent!",
-          sub: "Pudge is so proud of you.",
+          sub: `${activeChar.name} is so proud of you.`,
           color: "text-emerald-400",
           blob: "cheering" as const,
         }
@@ -202,10 +206,10 @@ export default function SessionSummary() {
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
         <div className="absolute top-1/4 right-1/4 size-64 bg-primary-foreground/10 rounded-full blur-3xl" />
 
-        <div className="relative z-10 cursor-pointer" title="Pet Pudge!">
+        <div className="relative z-10 cursor-pointer" title={`Pet ${activeChar.name}!`}>
           <Blob
-            palette="cream"
-            shape="wide"
+            palette={activeChar.palette}
+            shape={activeChar.shape}
             size={180}
             state={blobState}
             eyeTarget={mousePos}
@@ -220,7 +224,7 @@ export default function SessionSummary() {
           </h1>
           <p className="text-primary-foreground/70 mt-1">{grade.sub}</p>
           <p className="text-primary-foreground/50 text-sm mt-0.5">
-            {summary.duration_mins}min session complete · click Pudge to
+            {summary.duration_mins}min session complete · click {activeChar.name} to
             celebrate!
           </p>
         </div>
@@ -312,7 +316,7 @@ export default function SessionSummary() {
               Zero distractions detected!
             </p>
             <p className="text-muted-foreground text-sm mt-1">
-              Pudge is very impressed.
+              {activeChar.name} is very impressed.
             </p>
           </div>
         )}

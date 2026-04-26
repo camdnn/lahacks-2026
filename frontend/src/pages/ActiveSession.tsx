@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { Blob, type BlobState } from "../components/Blob";
 import { Button } from "../components/ui/Button";
 import { Download, ChevronDown, LogOut } from "lucide-react";
+import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
 
 const T_WINDOW_S = 60;
@@ -37,6 +38,8 @@ export default function ActiveSession() {
   const { durationMins, elapsed, end, isActive } = useSession();
   const focus = useFocus();
   const { profile, updateCoins, logout } = useAuth();
+
+  const activeChar = getCharacter(profile?.active_character ?? "cream_wide");
 
   const [ending, setEnding] = useState(false);
   const [poked, setPoked] = useState(false);
@@ -395,8 +398,8 @@ export default function ActiveSession() {
           {/* Mascot */}
           <div className="z-10 cursor-pointer select-none" onClick={handlePoke}>
             <Blob
-              palette="cream"
-              shape="wide"
+              palette={activeChar.palette}
+              shape={activeChar.shape}
               size={140}
               state={poked ? "poked" : getBlobState(score, focus.face_detected)}
               eyeTarget={mousePos}

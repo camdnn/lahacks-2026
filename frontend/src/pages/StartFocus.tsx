@@ -102,19 +102,20 @@ export default function StartFocus() {
   };
 
   const handleCalibrate = async () => {
-    setStep("calibrating");
     setError("");
 
-    // Start a temporary camera preview so user can see they're in frame
+    // Acquire camera BEFORE switching screens so the countdown and 5s sleep start together
     let localStream: MediaStream | null = null;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      setCalibStream(localStream);
     } catch { /* permission denied — show placeholder */ }
+
+    setCalibStream(localStream);
+    setStep("calibrating"); // countdown effect fires here, aligned with the sleep below
 
     await new Promise(r => setTimeout(r, 5000));
 
-    // Stop preview before FocusContext opens its own stream (use local var to avoid stale closure)
+    // Stop preview before FocusContext opens its own stream
     localStream?.getTracks().forEach(t => t.stop());
     setCalibStream(null);
 
