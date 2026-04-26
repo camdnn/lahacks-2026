@@ -14,7 +14,7 @@ import "./App.css";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
   return session ? <>{children}</> : <Navigate to="/login" replace />;
 }
 

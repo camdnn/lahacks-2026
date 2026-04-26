@@ -5,6 +5,7 @@ import { useFocus } from "../context/FocusContext";
 import { Blob, type BlobState } from "../components/Blob";
 import { Button } from "../components/ui/Button";
 import { Download } from "lucide-react";
+import { CartoonCoin } from "../components/CartoonCoin";
 
 function fmt(secs: number) {
   const m = Math.floor(secs / 60)
@@ -42,7 +43,7 @@ export default function ActiveSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (!isActive && !ending) navigate("/");
+    if (!isActive && !ending) navigate("/home");
   }, [isActive, ending, navigate]);
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function ActiveSession() {
       const localSummary = {
         duration_mins: durationMins ?? Math.round(elapsed / 60),
         focus_score: focus.focus_score,
-        coins_earned: 0,
+        coins_earned: focus.coinsEarned,
         coin_balance: 0,
         top_distractors: focus.top_distractors.map(([type, count]) => ({
           type,
@@ -247,8 +248,9 @@ export default function ActiveSession() {
 
         {/* Coin counter */}
         <div className="text-center">
-          <div className="text-4xl font-black text-amber-400 tabular-nums">
-            🪙 {focus.coinsEarned}
+          <div className="flex items-center justify-center gap-2">
+            <CartoonCoin size={36} />
+            <span className="text-4xl font-black text-amber-500 tabular-nums">{focus.coinsEarned}</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             coins earned (1 per 5 s focused)

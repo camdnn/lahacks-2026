@@ -909,6 +909,10 @@ export default function Homepage() {
   const { session, loading } = useAuth();
   const cta = () => navigate(!loading && session ? "/home" : "/login");
 
+  useEffect(() => {
+    if (!loading && session) navigate("/home", { replace: true });
+  }, [session, loading, navigate]);
+
   return (
     <div
       style={{
