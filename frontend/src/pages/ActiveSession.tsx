@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
 import { useFocus } from "../context/FocusContext";
+import { useAuth } from "../context/AuthContext";
 import { Blob, type BlobState } from "../components/Blob";
 import { Button } from "../components/ui/Button";
-import { Download } from "lucide-react";
+import { Download, ChevronDown, LogOut } from "lucide-react";
 import { CartoonCoin } from "../components/CartoonCoin";
 
 function fmt(secs: number) {
@@ -35,12 +36,16 @@ export default function ActiveSession() {
   const navigate = useNavigate();
   const { durationMins, elapsed, end, isActive } = useSession();
   const focus = useFocus();
+  const { profile, updateCoins, logout } = useAuth();
   const [ending, setEnding] = useState(false);
   const [poked, setPoked] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
     null,
   );
   const videoRef = useRef<HTMLVideoElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isActive && !ending) navigate("/home");
@@ -50,6 +55,16 @@ export default function ActiveSession() {
     const h = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", h);
     return () => window.removeEventListener("mousemove", h);
+  }, []);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
 
   // Bind camera stream to the preview element
@@ -79,11 +94,13 @@ export default function ActiveSession() {
       const summary = await end();
       navigate("/summary", { state: { summary } });
     } catch {
+      const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
+      updateCoins(newBalance);
       const localSummary = {
         duration_mins: durationMins ?? Math.round(elapsed / 60),
         focus_score: focus.focus_score,
         coins_earned: focus.coinsEarned,
-        coin_balance: 0,
+        coin_balance: newBalance,
         top_distractors: focus.top_distractors.map(([type, count]) => ({
           type,
           count,
@@ -119,16 +136,101 @@ export default function ActiveSession() {
     .slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-background grid lg:grid-cols-2">
-      {/* Desktop download hint — replaces the removed browser FloatingPudge */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Exit-session confirmation dialog */}
+      {showExitDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h2 className="text-lg font-black mb-1">End your session?</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Your progress and coins will be saved and you'll see your summary.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => { setShowExitDialog(false); handleEnd(); }}
+                disabled={ending}
+                className="flex-1 h-10"
+              >
+                {ending ? "Ending…" : "End & Go Home"}
+              </Button>
+              <Button
+                onClick={() => setShowExitDialog(false)}
+                variant="outline"
+                className="flex-1 h-10"
+              >
+                Resume
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-card shrink-0">
+        <button
+          onClick={() => setShowExitDialog(true)}
+          className="flex items-center gap-2 text-lg font-bold cursor-pointer hover:opacity-75 transition-opacity"
+        >
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: "#F08F60",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(240,143,96,0.35)",
+          }}>
+            <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
+          </div>
+          <span className="font-black tracking-tight">Bloom</span>
+        </button>
+
+        {/* Profile dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setProfileOpen(o => !o)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-accent transition-colors cursor-pointer"
+          >
+            <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-black text-primary select-none">
+              {profile?.email?.[0]?.toUpperCase() ?? "U"}
+            </div>
+            <span className="text-sm font-semibold max-w-45 truncate text-foreground">
+              {profile?.email ?? "Account"}
+            </span>
+            <ChevronDown className={`size-3 text-muted-foreground transition-transform ${profileOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border bg-card shadow-lg p-3 z-50">
+              <div className="px-2 py-1.5 mb-2">
+                <p className="text-xs text-muted-foreground mb-0.5 font-bold uppercase tracking-wide">Signed in as</p>
+                <p className="text-sm font-bold truncate">{profile?.email}</p>
+              </div>
+              <hr className="border-border mb-2" />
+              <button
+                onClick={() => { logout(); setProfileOpen(false); }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
+                style={{ color: "#E26656" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#FFE0DB")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <LogOut className="size-4" />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Desktop download hint */}
       <a
         href="http://localhost:8000/download/overlay"
         download="Pudge.dmg"
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3 py-2 bg-card border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 shadow-sm transition-all"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-3 py-2 bg-card border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 shadow-sm transition-all"
       >
         <Download className="size-3 shrink-0" />
         Get Pudge for desktop
       </a>
+
+      {/* Main content */}
+      <div className="flex-1 grid lg:grid-cols-2">
       {/* Left — camera + mascot panel */}
       <div className="hidden lg:flex flex-col items-center justify-center bg-linear-to-br from-primary/90 via-primary to-primary/80 p-12 relative overflow-hidden gap-6">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
@@ -294,6 +396,7 @@ export default function ActiveSession() {
         >
           {ending ? "Ending…" : "End Session"}
         </Button>
+      </div>
       </div>
     </div>
   );

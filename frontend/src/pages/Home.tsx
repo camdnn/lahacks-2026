@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Home, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -140,15 +140,6 @@ export default function HomeDashboard() {
             .dmg
           </span>
         </a>
-
-        {/* Back to landing */}
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          <Home className="size-4" />
-          Back to home page
-        </button>
 
         {/* Streak */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
