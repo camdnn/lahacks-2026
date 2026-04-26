@@ -4,7 +4,7 @@ import {
 } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useSession } from "./SessionContext";
-import { logEvent, BASE_URL } from "../api/client";
+import { logEvent, BASE_URL, saveSessionSnapshot } from "../api/client";
 
 // ── types ──────────────────────────────────────────────────────────────────────
 
@@ -127,8 +127,6 @@ const T = {
 const R_EYE_PTS = [33,  160, 158, 133, 153, 144];
 const L_EYE_PTS = [362, 385, 387, 263, 373, 380];
 const NOSE_TIP  = 4;
-const FOREHEAD  = 10;
-const CHIN      = 152;
 const L_OUTER   = 33;
 const R_OUTER   = 263;
 const LIP_TOP   = 13;
@@ -498,6 +496,32 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     }, 2000);
     return () => clearInterval(iv);
   }, [isActive]);
+
+  // ── Persist eye_data snapshot to DB every 30s ──────────────────────────────
+  const snapshotRef = useRef({ ear: 0.3, face_detected: false, head_tilt: 0, blink_rate: 0 });
+  useEffect(() => {
+    snapshotRef.current = {
+      ear:           data.ear,
+      face_detected: data.face_detected,
+      head_tilt:     data.head_tilt,
+      blink_rate:    data.blink_rate,
+    };
+  }, [data.ear, data.face_detected, data.head_tilt, data.blink_rate]);
+
+  useEffect(() => {
+    if (!isActive || !sessionId) return;
+    const iv = setInterval(() => {
+      const s = snapshotRef.current;
+      saveSessionSnapshot({
+        session_id:          sessionId,
+        ear:                 s.ear,
+        is_looking_at_screen: s.face_detected,
+        head_tilt_degrees:   s.head_tilt,
+        blink_rate_per_min:  s.blink_rate || undefined,
+      }).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(iv);
+  }, [isActive, sessionId]);
 
   // Stop camera on tab/window close
   useEffect(() => {
