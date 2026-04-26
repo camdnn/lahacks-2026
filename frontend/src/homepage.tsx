@@ -2,15 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Blob } from "./components/Blob";
 import { useAuth } from "./context/AuthContext";
-import {
-  Coins,
-  Flame,
-  Play,
-  BarChart2,
-  LogOut,
-  ChevronDown,
-  Home,
-} from "lucide-react";
+import { Coins, LogOut, ChevronDown } from "lucide-react";
 
 // ── Inject page-level styles once ────────────────────────────
 let landingStylesInjected = false;
@@ -85,16 +77,8 @@ const C = {
 };
 
 // ── Nav ───────────────────────────────────────────────────────
-function Nav({
-  onLogin,
-  onDashboard,
-  username,
-}: {
-  onLogin: () => void;
-  onDashboard: () => void;
-  username?: string;
-}) {
-  const { profile, logout } = useAuth();
+function Nav({ onLogin }: { onLogin: () => void }) {
+  const { profile, logout, session, loading } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -160,7 +144,7 @@ function Nav({
         </span>
       </div>
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        {username ? (
+        {!loading && session ? (
           <div className="relative" ref={dropdownRef}>
             {/* Profile dropdown */}
             <button
@@ -200,9 +184,10 @@ function Nav({
                 </div>
                 <hr className="border-border mb-2" />
                 <button
-                  onClick={() => {
-                    logout();
+                  onClick={async () => {
                     setProfileOpen(false);
+                    await logout();
+                    navigate("/");
                   }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
                   style={{ color: "#E26656" }}
@@ -227,7 +212,7 @@ function Nav({
             <button
               className="landing-cta-btn"
               style={{ padding: "12px 24px", fontSize: 14 }}
-              onClick={onLogin}
+              onClick={() => navigate("/register")}
             >
               Get started →
             </button>
@@ -246,6 +231,7 @@ function Hero({
   onLogin: () => void;
   onAnalytics: () => void;
 }) {
+  const navigate = useNavigate();
   const [blobMsg, setBlobMsg] = useState("ready when you are :)");
   const msgs = [
     "flicker to flow",
@@ -379,7 +365,7 @@ function Hero({
             marginBottom: 56,
           }}
         >
-          <button className="landing-cta-btn" onClick={onLogin}>
+          <button className="landing-cta-btn" onClick={() => navigate("/register")}>
             Start focusing free →
           </button>
           <button disabled className="landing-ghost-btn" onClick={onAnalytics}>
@@ -847,7 +833,8 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
 }
 
 // ── Footer CTA ────────────────────────────────────────────────
-function FooterCTA({ onLogin }: { onLogin: () => void }) {
+function FooterCTA() {
+  const navigate = useNavigate();
   return (
     <section
       style={{
@@ -906,7 +893,7 @@ function FooterCTA({ onLogin }: { onLogin: () => void }) {
         <button
           className="landing-cta-btn"
           style={{ fontSize: 18, padding: "18px 44px" }}
-          onClick={onLogin}
+          onClick={() => navigate("/register")}
         >
           Start for free →
         </button>
@@ -919,8 +906,8 @@ function FooterCTA({ onLogin }: { onLogin: () => void }) {
 export default function Homepage() {
   injectLandingStyles();
   const navigate = useNavigate();
-  const { profile, session } = useAuth();
-  const cta = () => navigate(session ? "/home" : "/login");
+  const { session, loading } = useAuth();
+  const cta = () => navigate(!loading && session ? "/home" : "/login");
 
   return (
     <div
@@ -932,22 +919,11 @@ export default function Homepage() {
         overflowX: "hidden",
       }}
     >
-      <Nav
-        onLogin={cta}
-        onDashboard={() => navigate("/home")}
-        username={
-          session
-            ? (profile?.username ??
-              profile?.email ??
-              session.user.email ??
-              undefined)
-            : undefined
-        }
-      />
+      <Nav onLogin={cta} />
       <Hero onLogin={cta} onAnalytics={() => navigate("/analytics")} />
       <Features />
       <ScorePreview onAnalytics={() => navigate("/analytics")} />
-      <FooterCTA onLogin={cta} />
+      <FooterCTA />
       <footer
         style={{
           borderTop: `1.5px solid ${C.border}`,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "./components/ui/Button";
 import { Input } from "./components/ui/Input";
 import { Label } from "./components/ui/Label";
@@ -112,7 +112,7 @@ function LoginPage() {
         style={{ background: "#FFFAF1", borderRight: "1.5px solid #EAD7BE" }}
       >
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-2.5">
+        <Link to="/" className="relative z-10 flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
           <div style={{
             width: 32, height: 32, borderRadius: 9,
             background: "#F08F60",
@@ -123,7 +123,7 @@ function LoginPage() {
           </div>
           <span className="font-black text-lg tracking-tight" style={{ color: "#3D2A1B" }}>Bloom</span>
           <span className="text-xs font-semibold" style={{ color: "#806550" }}>focus, with friends</span>
-        </div>
+        </Link>
 
         {/* Blobs */}
         <div className="relative z-10 flex flex-1 items-end justify-center pb-10">
