@@ -69,3 +69,22 @@ def avg_ear(landmarks) -> float:
     left  = eye_aspect_ratio(landmarks, LEFT_EAR_INDICES)
     right = eye_aspect_ratio(landmarks, RIGHT_EAR_INDICES)
     return (left + right) / 2.0
+
+
+def gaze_down_ratio(landmarks) -> float:
+    """
+    Iris vertical position within eye socket, averaged across both eyes.
+    0.0 = looking up, 1.0 = looking down. Requires refine_landmarks=True.
+    """
+    def _eye_ratio(iris_idx, top_idx, bot_idx):
+        iris = landmarks[iris_idx]
+        top  = landmarks[top_idx]
+        bot  = landmarks[bot_idx]
+        h = abs(bot.y - top.y)
+        if h < 1e-6:
+            return 0.5
+        return (iris.y - top.y) / h
+
+    left  = _eye_ratio(468, 159, 145)
+    right = _eye_ratio(473, 386, 374)
+    return (left + right) / 2.0

@@ -11,7 +11,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from cv.eye import avg_ear, mouth_aspect_ratio, head_tilt_degrees, nose_vertical_ratio
+from cv.eye import avg_ear, mouth_aspect_ratio, head_tilt_degrees, nose_vertical_ratio, gaze_down_ratio
 from cv.eye import LEFT_EAR_INDICES, RIGHT_EAR_INDICES
 from cv.face import draw_eye_contour, draw_mouth_contour, draw_metrics_overlay, draw_event_badge
 from state import state
@@ -21,7 +21,9 @@ EAR_THRESHOLD   = 0.15   # below = microsleep
 MAR_THRESHOLD   = 0.60   # above = yawn
 TILT_THRESHOLD  = 20.0   # degrees
 NOSE_THRESHOLD  = 0.55   # above = phone check
+GAZE_DOWN_THRESHOLD = 0.62   # iris in lower portion of socket = looking down
 EAR_CONSEC_FRAMES = 2    # consecutive frames for microsleep
+PHONE_CONSEC_FRAMES = 5  # ~0.15s at 30fps — filters head-bob jitter
 
 BLINK_EAR_THRESHOLD = 0.22  # for counting blinks (higher than microsleep)
 
@@ -71,6 +73,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
     blink_count = 0
     yawn_cooldown = 0
     phone_cooldown = 0
+    phone_consec = 0
     tilt_cooldown = 0
     eyes_off_cooldown = 0
     microsleep_cooldown = 0
@@ -146,6 +149,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                 mar = mouth_aspect_ratio(lm)
                 tilt = head_tilt_degrees(lm)
                 nose = nose_vertical_ratio(lm)
+                gaze = gaze_down_ratio(lm)
 
                 # Feed calibration if running
                 if state.is_calibrating:
@@ -204,12 +208,18 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                     tilt_cooldown = now + 3.0
 
                 # ── Phone check ──
-                if nose > nose_thresh and phone_cooldown < now:
+                if nose > nose_thresh and gaze > GAZE_DOWN_THRESHOLD:
+                    phone_consec += 1
+                else:
+                    phone_consec = 0
+
+                if phone_consec >= PHONE_CONSEC_FRAMES and phone_cooldown < now:
                     if state.is_active:
                         state.increment("phone_check")
                     last_event = "phone_check"
                     event_display_until = now + 2.0
                     phone_cooldown = now + 5.0
+                    phone_consec = 0
 
             else:
                 blink_rate = 0.0
