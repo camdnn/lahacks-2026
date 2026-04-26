@@ -6,7 +6,7 @@ import { Button } from "./components/ui/Button";
 import { Input } from "./components/ui/Input";
 import { Label } from "./components/ui/Label";
 import { Checkbox } from "./components/ui/Checkbox";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Blob, type BlobState } from "./components/Blob";
 import { useAuth } from "./context/AuthContext";
 
@@ -38,33 +38,29 @@ function LoginPage() {
   useEffect(() => {
     if (redirectPending && session) navigate("/home");
   }, [redirectPending, session, navigate]);
+
   const [mouseX, setMouseX] = useState<number | null>(null);
   const [mouseY, setMouseY] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMouseX(e.clientX);
-      setMouseY(e.clientY);
-    };
+    const handleMouseMove = (e: MouseEvent) => { setMouseX(e.clientX); setMouseY(e.clientY); };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   const eyeTarget = mouseX !== null && mouseY !== null ? { x: mouseX, y: mouseY } : null;
   const peachieRef = useRef<HTMLDivElement>(null);
-  const pudgeRef = useRef<HTMLDivElement>(null);
-  const bubsRef = useRef<HTMLDivElement>(null);
-  const isActive = isTyping || isPasswordFocused;
+  const pudgeRef   = useRef<HTMLDivElement>(null);
+  const bubsRef    = useRef<HTMLDivElement>(null);
+  const isActive   = isTyping || isPasswordFocused;
 
   const computeLean = (ref: React.RefObject<HTMLDivElement | null>) => {
     if (!ref.current || mouseX === null) return 0;
     const rect = ref.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const deltaX = mouseX - centerX;
-    const multiplier = isActive ? 2.2 : 1;
-    return Math.max(-8, Math.min(8, (-deltaX / 100) * multiplier));
+    const deltaX = mouseX - (rect.left + rect.width / 2);
+    return Math.max(-8, Math.min(8, (-deltaX / 100) * (isActive ? 2.2 : 1)));
   };
 
   const getPudgeState = (): BlobState => {
@@ -79,7 +75,6 @@ function LoginPage() {
   const getCompanionState = (idx: number): BlobState => {
     if (isLoading) return idx === 0 ? "cheering" : "walking";
     if (error) return "sad";
-    if (isTyping) return "idle";
     return "idle";
   };
 
@@ -111,21 +106,27 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      {/* Left panel */}
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      {/* ── Left panel – mascots ── */}
       <div
         className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden"
-        style={{ background: "#FBF1E5", color: "#3D2A1B" }}
+        style={{ background: "#FFFAF1", borderRight: "1.5px solid #EAD7BE" }}
       >
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <div className="size-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(61,42,27,0.08)" }}>
-              <Sparkles className="size-4" />
-            </div>
-            <span>Flicker to Flow</span>
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-2.5">
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: "#F08F60",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(240,143,96,0.35)",
+          }}>
+            <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
           </div>
+          <span className="font-black text-lg tracking-tight" style={{ color: "#3D2A1B" }}>Bloom</span>
+          <span className="text-xs font-semibold" style={{ color: "#806550" }}>focus, with friends</span>
         </div>
 
+        {/* Blobs */}
         <div className="relative z-10 flex flex-1 items-end justify-center pb-10">
           <div className="flex items-end gap-10">
             <div ref={peachieRef}>
@@ -140,67 +141,84 @@ function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center gap-8 text-sm" style={{ color: "rgba(61,42,27,0.45)" }}>
-          <a href="#" className="hover:opacity-80 transition-opacity cursor-pointer" style={{ color: "inherit" }}>Privacy Policy</a>
-          <a href="#" className="hover:opacity-80 transition-opacity cursor-pointer" style={{ color: "inherit" }}>Terms of Service</a>
+        {/* Footer links */}
+        <div className="relative z-10 flex items-center gap-8 text-sm font-semibold" style={{ color: "rgba(61,42,27,0.45)" }}>
+          <a href="#" className="hover:opacity-80 transition-opacity cursor-pointer" style={{ color: "inherit" }}>Privacy</a>
+          <a href="#" className="hover:opacity-80 transition-opacity cursor-pointer" style={{ color: "inherit" }}>Terms</a>
           <a href="#" className="hover:opacity-80 transition-opacity cursor-pointer" style={{ color: "inherit" }}>Contact</a>
         </div>
 
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(240,143,96,0.15)" }} />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(240,143,96,0.12)" }} />
       </div>
 
-      {/* Right form panel */}
+      {/* ── Right panel – form ── */}
       <div className="flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Sparkles className="size-4 text-primary" />
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center justify-center gap-2.5 mb-12">
+            <div style={{
+              width: 32, height: 32, borderRadius: 9, background: "#F08F60",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
             </div>
-            <span>Flicker to Flow</span>
+            <span className="font-black text-lg tracking-tight">Bloom</span>
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome back!</h1>
-            <p className="text-muted-foreground text-sm">Sign in to your account</p>
+            <h1 className="text-3xl font-black tracking-tight mb-2">Welcome back!</h1>
+            <p className="text-muted-foreground text-sm font-semibold">Sign in to your account</p>
           </div>
 
           {/* OAuth */}
           <div className="flex flex-col gap-3 mb-6">
-            <Button variant="outline" className="w-full h-11 bg-background border-border/60 hover:bg-accent cursor-pointer" type="button" onClick={handleGoogle}>
-              <GoogleIcon />
-              Continue with Google
+            <Button
+              variant="outline"
+              className="w-full h-11 bg-card border-border hover:bg-accent font-bold cursor-pointer"
+              type="button"
+              onClick={handleGoogle}
+            >
+              <GoogleIcon />Continue with Google
             </Button>
-            <Button variant="outline" className="w-full h-11 bg-background border-border/60 hover:bg-accent cursor-pointer" type="button" onClick={handleGitHub}>
-              <GitHubIcon />
-              Continue with GitHub
+            <Button
+              variant="outline"
+              className="w-full h-11 bg-card border-border hover:bg-accent font-bold cursor-pointer"
+              type="button"
+              onClick={handleGitHub}
+            >
+              <GitHubIcon />Continue with GitHub
             </Button>
           </div>
 
+          {/* Divider */}
           <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">or continue with email</span>
+              <span className="bg-background px-3 text-muted-foreground font-black tracking-widest">or</span>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-black">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="john@gmail.com"
+                placeholder="you@example.com"
                 value={email}
                 autoComplete="off"
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={() => setIsTyping(true)}
                 onBlur={() => setIsTyping(false)}
                 required
-                className="h-11 bg-background border-border/60 focus:border-primary"
+                className="h-11 bg-card border-border focus:border-primary"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+              <Label htmlFor="password" className="text-sm font-black">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -211,7 +229,7 @@ function LoginPage() {
                   onFocus={() => setIsPasswordFocused(true)}
                   onBlur={() => setIsPasswordFocused(false)}
                   required
-                  className="h-11 pr-10 bg-background border-border/60 focus:border-primary"
+                  className="h-11 pr-10 bg-card border-border focus:border-primary"
                 />
                 <button
                   type="button"
@@ -225,30 +243,28 @@ function LoginPage() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Checkbox id="remember" className="cursor-pointer" />
-                <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                  Remember me
-                </Label>
+                <Checkbox id="remember" className="cursor-pointer border-border" />
+                <Label htmlFor="remember" className="text-sm font-semibold cursor-pointer">Remember me</Label>
               </div>
-              <a href="#" className="text-sm text-primary hover:underline font-medium cursor-pointer">
+              <a href="#" className="text-sm font-black hover:underline" style={{ color: "#F08F60" }}>
                 Forgot password?
               </a>
             </div>
 
             {error && (
-              <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
+              <div className="p-3 text-sm font-bold rounded-xl border" style={{ background: "#FFE0DB", color: "#E26656", borderColor: "#E26656" }}>
                 {error}
               </div>
             )}
 
-            <Button type="submit" className="w-full h-11 text-base font-medium cursor-pointer" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11 text-base font-black cursor-pointer" disabled={isLoading}>
               {isLoading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6 font-semibold">
             Don't have an account?{" "}
-            <button onClick={() => navigate("/register")} className="text-foreground font-medium hover:underline cursor-pointer">
+            <button onClick={() => navigate("/register")} className="font-black hover:underline cursor-pointer" style={{ color: "#3D2A1B" }}>
               Sign up
             </button>
           </p>
