@@ -112,13 +112,16 @@ export default function HomeDashboard() {
             <p className="text-sm text-muted-foreground font-semibold">General or specialized focus mode</p>
           </button>
 
-          <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left opacity-40 cursor-not-allowed select-none">
+          <button
+            onClick={() => navigate("/my-analytics")}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-green hover:shadow-lg transition-all cursor-pointer"
+          >
             <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#D9F0D3" }}>
               <BarChart2 className="size-6" style={{ color: "#7FB069" }} />
             </div>
             <h3 className="font-black text-lg mb-1">View Analytics</h3>
-            <p className="text-sm text-muted-foreground font-semibold">Coming soon</p>
-          </div>
+            <p className="text-sm text-muted-foreground font-semibold">Your focus insights</p>
+          </button>
         </div>
 
         {/* Download overlay */}

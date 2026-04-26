@@ -372,7 +372,7 @@ function Hero({
           >
             Start focusing free →
           </button>
-          <button disabled className="landing-ghost-btn" onClick={onAnalytics}>
+          <button className="landing-ghost-btn" onClick={onAnalytics}>
             See your analytics
           </button>
         </div>
@@ -707,7 +707,7 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
             patterns, shows you your peak-focus window, and tells you exactly
             how to improve — with timestamps.
           </p>
-          <button disabled className="landing-cta-btn" onClick={onAnalytics}>
+          <button className="landing-cta-btn" onClick={onAnalytics}>
             View sample analytics →
           </button>
         </div>
@@ -912,6 +912,7 @@ export default function Homepage() {
   const { session, loading } = useAuth();
   const cta = () => navigate(!loading && session ? "/home" : "/login");
   const ctaFocus = () => navigate(!loading && session ? "/home" : "/register");
+  const ctaAnalytics = () => navigate(!loading && session ? "/my-analytics" : "/analytics");
 
   useEffect(() => {
     if (!loading && session) navigate("/home", { replace: true });
@@ -928,7 +929,7 @@ export default function Homepage() {
       }}
     >
       <Nav onLogin={cta} />
-      <Hero onLogin={cta} onFocus={ctaFocus} onAnalytics={() => navigate("/analytics")} />
+      <Hero onLogin={cta} onFocus={ctaFocus} onAnalytics={ctaAnalytics} />
       <Features />
       <ScorePreview onAnalytics={() => navigate("/analytics")} />
       <FooterCTA onFocus={ctaFocus} />

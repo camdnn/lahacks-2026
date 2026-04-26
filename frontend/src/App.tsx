@@ -4,6 +4,7 @@ import { Component as LoginPage } from "./login";
 import { Component as RegisterPage } from "./register";
 import { Component as AnalyticsPage } from "./analytics";
 import Home from "./pages/Home";
+import MyAnalytics from "./pages/MyAnalytics";
 import StartFocus from "./pages/StartFocus";
 import ActiveSession from "./pages/ActiveSession";
 import SessionSummary from "./pages/SessionSummary";
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/my-analytics" element={<RequireAuth><MyAnalytics /></RequireAuth>} />
         <Route path="/start" element={<RequireAuth><StartFocus /></RequireAuth>} />
         <Route path="/session" element={<RequireAuth><ActiveSession /></RequireAuth>} />
         <Route path="/summary" element={<RequireAuth><SessionSummary /></RequireAuth>} />
