@@ -295,25 +295,31 @@ export default function StartFocus() {
               </button>
             ))}
           </div>
-          {preset === "custom" && (
-            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-card border border-border/60">
-              {ALL_CHECKS.map(({ id, label }) => (
-                <label key={id} className="flex items-center gap-2 text-sm font-semibold cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!customDisabled.includes(id)}
-                    onChange={(e) =>
-                      setCustomDisabled(prev =>
-                        e.target.checked ? prev.filter(x => x !== id) : [...prev, id]
-                      )
-                    }
-                    className="accent-orange-500"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-card border border-border/60">
+            {ALL_CHECKS.map(({ id, label }) => (
+              <label
+                key={id}
+                className="flex items-center gap-2 text-sm font-semibold select-none"
+                style={{
+                  cursor: preset === "custom" ? "pointer" : "default",
+                  opacity: preset === "custom" ? 1 : 0.65,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={!finalDisabled.includes(id)}
+                  disabled={preset !== "custom"}
+                  onChange={(e) =>
+                    setCustomDisabled(prev =>
+                      e.target.checked ? prev.filter(x => x !== id) : [...prev, id]
+                    )
+                  }
+                  className="accent-orange-500"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Allowed tabs */}

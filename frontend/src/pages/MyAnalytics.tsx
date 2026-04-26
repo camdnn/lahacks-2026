@@ -123,8 +123,15 @@ interface SessionRow {
   focus_score: number | null;
   coins_earned: number | null;
   focus_duration_mins: number | null;
+  session_type: string;
 }
 interface EventRow { session_id: string; event_type: string }
+interface StreakRow { current_streak: number; longest_streak: number; last_session_date: string | null }
+
+const SESSION_TYPE_LABELS: Record<string, string> = {
+  studying: "Studying", coding: "Coding", notes: "Taking Notes",
+  meeting: "Meeting", custom: "Custom",
+};
 
 // ── Helpers ──────────────────────────────────────────────────────
 function fmtDate(iso: string) {
@@ -197,10 +204,11 @@ type TabData = {
   totalCoins: number;
   topDistractions: { type: string; count: number; impact: number; meta: DistractorMeta }[];
   peakHours: { hour: number; avg: number; count: number }[];
+  streak: StreakRow | null;
 };
 
 function OverviewTab({ data, navigate }: { data: TabData; navigate: (path: string) => void }) {
-  const { sessions, totalSessions, avgScore, totalCoins, peakHours } = data;
+  const { sessions, totalSessions, avgScore, totalCoins, peakHours, streak } = data;
   const maxAvg = peakHours[0]?.avg ?? 1;
 
   return (
@@ -218,6 +226,23 @@ function OverviewTab({ data, navigate }: { data: TabData; navigate: (path: strin
           </div>
         ))}
       </div>
+
+      {/* Streak card */}
+      {streak && (streak.current_streak > 0 || streak.longest_streak > 0) && (
+        <div className="ma-card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, background: "#FFF3D6", borderColor: "#F5C24A55" }}>
+          <div style={{ fontSize: 28 }}>🔥</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: "#C97A3F", marginBottom: 2 }}>Current streak</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.ink }}>{streak.current_streak} day{streak.current_streak !== 1 ? "s" : ""}</div>
+          </div>
+          {streak.longest_streak > 0 && (
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.1, color: C.soft, marginBottom: 2 }}>Best</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.ink }}>{streak.longest_streak}d</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Peak hour highlight */}
       {peakHours.length > 0 && (
@@ -261,7 +286,14 @@ function OverviewTab({ data, navigate }: { data: TabData; navigate: (path: strin
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <ScoreRing score={score} size={52} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: -0.3 }}>{fmtDate(s.started_at)}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: -0.3 }}>{fmtDate(s.started_at)}</div>
+                      {s.session_type && s.session_type !== "general" && (
+                        <div style={{ padding: "2px 8px", borderRadius: 999, background: C.accentSoft, fontSize: 11, fontWeight: 800, color: C.accent }}>
+                          {SESSION_TYPE_LABELS[s.session_type] ?? s.session_type}
+                        </div>
+                      )}
+                    </div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.soft, marginTop: 2 }}>
                       {fmtTime(s.started_at)} · {dur}
                     </div>
@@ -410,6 +442,7 @@ export default function MyAnalytics() {
 
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [streak, setStreak] = useState<StreakRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -424,7 +457,7 @@ export default function MyAnalytics() {
 
       const { data: sData, error: sErr } = await supabase
         .from("sessions")
-        .select("session_id, started_at, ended_at, focus_score, coins_earned, focus_duration_mins")
+        .select("session_id, started_at, ended_at, focus_score, coins_earned, focus_duration_mins, session_type")
         .eq("user_id", uid)
         .not("ended_at", "is", null)
         .order("started_at", { ascending: false });
@@ -442,6 +475,13 @@ export default function MyAnalytics() {
           .in("session_id", ids);
         setEvents((eData ?? []) as EventRow[]);
       }
+
+      const { data: stData } = await supabase
+        .from("streaks")
+        .select("current_streak, longest_streak, last_session_date")
+        .eq("user_id", uid)
+        .single();
+      setStreak(stData as StreakRow | null);
 
       setLoading(false);
     })();
@@ -489,7 +529,7 @@ export default function MyAnalytics() {
       .slice(0, 4);
   }, [sessions]);
 
-  const tabData: TabData = { sessions, events, totalSessions, avgScore, totalCoins, topDistractions, peakHours };
+  const tabData: TabData = { sessions, events, totalSessions, avgScore, totalCoins, topDistractions, peakHours, streak };
 
   const TABS: { id: Tab; label: string; emoji: string }[] = [
     { id: "overview", label: "Overview", emoji: "📊" },
@@ -594,6 +634,11 @@ export default function MyAnalytics() {
               <Coins size={14} />
               <span style={{ color: C.ink, fontSize: 18, fontWeight: 900 }}>{totalCoins}</span> coins
             </div>
+            {streak && streak.current_streak > 0 && (
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.soft }}>
+                <span style={{ color: C.ink, fontSize: 18, fontWeight: 900 }}>{streak.current_streak}</span> 🔥 streak
+              </div>
+            )}
           </div>
         </div>
       </div>
