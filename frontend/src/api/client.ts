@@ -28,6 +28,7 @@ export const logEvent = (data: {
   metadata?: object;
 }) => api.post("/events/", data);
 
+export const startCalibration = () => api.post("/calibrate/start");
 export const logEyeData = (data: object) => api.post("/eye-data/", data);
 export const logScreenData = (data: object) => api.post("/screen-data/", data);
 export const getState = () => api.get("/state");

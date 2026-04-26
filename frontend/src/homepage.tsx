@@ -88,13 +88,11 @@ const C = {
 function Nav({
   onLogin,
   onDashboard,
-  username,
 }: {
   onLogin: () => void;
   onDashboard: () => void;
-  username?: string;
 }) {
-  const { profile, logout } = useAuth();
+  const { profile, logout, session } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -160,7 +158,7 @@ function Nav({
         </span>
       </div>
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        {username ? (
+        {session ? (
           <div className="relative" ref={dropdownRef}>
             {/* Profile dropdown */}
             <button
@@ -919,7 +917,7 @@ function FooterCTA({ onLogin }: { onLogin: () => void }) {
 export default function Homepage() {
   injectLandingStyles();
   const navigate = useNavigate();
-  const { profile, session } = useAuth();
+  const { session } = useAuth();
   const cta = () => navigate(session ? "/home" : "/login");
 
   return (
@@ -935,14 +933,6 @@ export default function Homepage() {
       <Nav
         onLogin={cta}
         onDashboard={() => navigate("/home")}
-        username={
-          session
-            ? (profile?.username ??
-              profile?.email ??
-              session.user.email ??
-              undefined)
-            : undefined
-        }
       />
       <Hero onLogin={cta} onAnalytics={() => navigate("/analytics")} />
       <Features />

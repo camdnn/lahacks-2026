@@ -23,7 +23,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        <Route path="/" element=<Homepage /> />
+        <Route path="/" element={<Homepage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallback />} />

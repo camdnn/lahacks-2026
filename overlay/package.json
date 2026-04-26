@@ -1,0 +1,33 @@
+{
+  "name": "pudge-overlay",
+  "version": "1.0.0",
+  "description": "Your focus mascot, everywhere.",
+  "author": "Flicker to Flow",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.flickertoflow.pudge",
+    "productName": "Pudge",
+    "files": [
+      "*.js",
+      "*.html",
+      "*.css",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "target": [{ "target": "dmg", "arch": ["arm64"] }]
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

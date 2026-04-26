@@ -1,13 +1,16 @@
 import asyncio
 import json
 import threading
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from pathlib import Path
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from database import database
 from state import state
-from routers import auth, sessions, eye_data, screen_data, events
-from cv.loop import run_cv_loop, register_ws_client, unregister_ws_client
+from routers import auth, sessions, eye_data, screen_data, events, calibrate
+from cv.loop import run_cv_loop, stop_cv_loop, register_ws_client, unregister_ws_client
 from monitor.screen_monitor import run_screen_monitor
 
 app = FastAPI(title="Flicker to Flow API")
@@ -25,6 +28,7 @@ app.include_router(sessions.router)
 app.include_router(eye_data.router)
 app.include_router(screen_data.router)
 app.include_router(events.router)
+app.include_router(calibrate.router)
 
 
 @app.on_event("startup")
@@ -39,6 +43,7 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    stop_cv_loop()
     await database.disconnect()
 
 
@@ -52,6 +57,29 @@ async def get_state():
     return state.snapshot()
 
 
+class FocusPush(BaseModel):
+    face_detected: bool
+    focus_score: float
+
+@app.post("/state/push")
+async def push_focus(body: FocusPush):
+    state.push_browser_focus(body.face_detected, body.focus_score)
+    return {"ok": True}
+
+
+_DMG_PATH = Path(__file__).parent.parent / "overlay" / "dist" / "Pudge-1.0.0-arm64.dmg"
+
+@app.get("/download/overlay")
+async def download_overlay():
+    if not _DMG_PATH.exists():
+        raise HTTPException(status_code=404, detail="DMG not built yet — run `npm run dist` inside overlay/")
+    return FileResponse(
+        _DMG_PATH,
+        media_type="application/octet-stream",
+        filename="Pudge.dmg",
+    )
+
+
 @app.websocket("/ws/cv")
 async def ws_cv(websocket: WebSocket):
     """
@@ -63,7 +91,7 @@ async def ws_cv(websocket: WebSocket):
     register_ws_client(q)
     try:
         while True:
-            payload = await asyncio.wait_for(q.get(), timeout=5.0)
+            payload = await asyncio.wait_for(q.get(), timeout=30.0)
             await websocket.send_text(json.dumps(payload))
     except (WebSocketDisconnect, asyncio.TimeoutError, Exception):
         pass

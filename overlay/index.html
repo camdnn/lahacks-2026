@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pudge</title>
+  <link rel="stylesheet" href="pudge.css">
+</head>
+<body>
+  <!-- Hidden camera feed for MediaPipe — never visible to user -->
+  <video id="pudge-cam" autoplay muted playsinline
+    style="display:none;position:absolute;width:1px;height:1px;"></video>
+  <div id="pudge-wrap">
+    <div id="pudge-bubble"></div>
+    <div id="pudge-inner"></div>
+    <button id="pudge-close" title="Hide Pudge">×</button>
+  </div>
+  <script src="pudge.js"></script>
+</body>
+</html>

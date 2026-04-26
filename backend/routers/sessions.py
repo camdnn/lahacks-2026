@@ -70,10 +70,9 @@ async def end_session(session_id: str, user_id: str = Depends(_decode_token)):
 
     focus_score = snap["focus_score"]
 
-    base = focus_score * 0.5
-    duration_bonus = min(30, duration_mins / 2)
-    excellence_bonus = 20 if focus_score >= 90 else 0
-    coins = int(base + duration_bonus + excellence_bonus)
+    # 1 coin per 5 seconds of face-detected focus time
+    focus_seconds = snap.get("focus_seconds", 0)
+    coins = int(focus_seconds // 5)
 
     top_d = snap["top_distractors"]
     top_distractors = [{"type": k, "count": v, "impact": v * DISTRACTOR_WEIGHTS.get(k, 1)} for k, v in top_d]

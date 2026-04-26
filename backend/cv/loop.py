@@ -30,6 +30,7 @@ mp_face_mesh = mp.solutions.face_mesh
 # Shared set of WebSocket queues for CV test clients
 _ws_clients: set[asyncio.Queue] = set()
 _ws_lock = threading.Lock()
+_stop_event = threading.Event()
 
 
 def register_ws_client(q: asyncio.Queue):
@@ -55,15 +56,14 @@ def _broadcast_frame(loop: asyncio.AbstractEventLoop, frame: np.ndarray, metrics
                 pass
 
 
+def stop_cv_loop():
+    _stop_event.set()
+
+
 def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
     """Main CV loop — call in a daemon thread."""
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("[CV] No webcam found — CV loop not running.")
-        return
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    _stop_event.clear()
+    cap = None
 
     ear_consec = 0
     blink_consec = 0
@@ -80,6 +80,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
     blink_window_start = time.time()
     blinks_in_window = 0
 
+    last_frame_time = time.time()
     snapshot_timer = time.time()
     SNAPSHOT_INTERVAL = 10
 
@@ -93,11 +94,34 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
         min_tracking_confidence=0.5,
     ) as face_mesh:
 
-        while True:
+        while not _stop_event.is_set():
+            if not state.is_active:
+                if cap is not None:
+                    cap.release()
+                    cap = None
+                    state.update_cv(ear=0.3, mar=0.1, head_tilt=0.0,
+                                    nose_ratio=0.5, face_detected=False, blink_rate=0.0)
+                time.sleep(0.1)
+                continue
+
+            if cap is None:
+                cap = cv2.VideoCapture(1)
+                if not cap.isOpened():
+                    print("[CV] No webcam found — waiting for session to end.")
+                    cap = None
+                    time.sleep(0.5)
+                    continue
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
             ret, frame = cap.read()
             if not ret:
                 time.sleep(0.05)
                 continue
+
+            now_frame = time.time()
+            frame_dt = now_frame - last_frame_time
+            last_frame_time = now_frame
 
             h, w = frame.shape[:2]
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -111,6 +135,10 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
             tilt = 0.0
             nose = 0.5
 
+            # Dynamic thresholds — use calibrated baseline if available
+            nose_thresh = (state.nose_baseline + 0.12) if state.calibrated else NOSE_THRESHOLD
+            tilt_thresh = (abs(state.tilt_baseline) + 20.0) if state.calibrated else TILT_THRESHOLD
+
             if face_detected:
                 lm = results.multi_face_landmarks[0].landmark
 
@@ -118,6 +146,10 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                 mar = mouth_aspect_ratio(lm)
                 tilt = head_tilt_degrees(lm)
                 nose = nose_vertical_ratio(lm)
+
+                # Feed calibration if running
+                if state.is_calibrating:
+                    state.add_calibration_frame(nose, tilt)
 
                 # Draw contours
                 draw_eye_contour(frame, lm, LEFT_EAR_INDICES, h, w)
@@ -164,7 +196,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                     yawn_cooldown = now + 4.0
 
                 # ── Head tilt ──
-                if abs(tilt) > TILT_THRESHOLD and tilt_cooldown < now:
+                if abs(tilt - state.tilt_baseline) > tilt_thresh and tilt_cooldown < now:
                     if state.is_active:
                         state.increment("head_tilt")
                     last_event = "head_tilt"
@@ -172,7 +204,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                     tilt_cooldown = now + 3.0
 
                 # ── Phone check ──
-                if nose > NOSE_THRESHOLD and phone_cooldown < now:
+                if nose > nose_thresh and phone_cooldown < now:
                     if state.is_active:
                         state.increment("phone_check")
                     last_event = "phone_check"
@@ -189,6 +221,10 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                     last_event = "eyes_off_screen"
                     event_display_until = now + 1.5
                     eyes_off_cooldown = now + 5.0
+
+            # Accumulate focus time when face is visible
+            if face_detected and state.is_active:
+                state.add_focus_time(frame_dt)
 
             # Update shared state
             state.update_cv(
@@ -216,4 +252,5 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
 
             time.sleep(0.033)  # ~30fps cap
 
-    cap.release()
+    if cap is not None:
+        cap.release()

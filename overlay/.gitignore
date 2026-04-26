@@ -1,0 +1,4 @@
+node_modules/
+
+# electron-builder output — ignore everything (DMG too large for GitHub, use Releases)
+dist/
