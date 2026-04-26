@@ -68,7 +68,7 @@ function injectStyles() {
 
 // ── Distraction config — warm tonal palette ───────────────────
 const WEIGHTS: Record<string, number> = {
-  microsleep: 10,
+  microsleep: 4,
   phone_check: 5,
   disallowed_tab: 4,
   yawn: 3,
@@ -213,7 +213,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 const dm = (t: string, rank = 0): DMeta => {
   const labels: Record<string, string> = {
-    microsleep: "Microsleeps",
+    microsleep: "Eyes Closed",
     phone_check: "Phone checks",
     disallowed_tab: "Disallowed tabs",
     yawn: "Yawning",

@@ -60,6 +60,10 @@ const DISTRACTOR_LABELS: Record<string, string> = {
   tab_switch:      "Tab Switch",
 };
 
+const DISTRACTOR_WEIGHTS: Record<string, number> = {
+  microsleep: 4, phone_check: 5, yawn: 3, tab_switch: 2, eyes_off_screen: 2, head_tilt: 1,
+};
+
 function getBlobState(score: number, face: boolean): BlobState {
   if (!face) return "distracted";
   if (score >= 80) return "focused";
@@ -273,8 +277,8 @@ export default function ActiveSession() {
 
   const topDistractors = Object.entries(focus.counts)
     .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4);
+    .sort((a, b) => (b[1] * (DISTRACTOR_WEIGHTS[b[0]] ?? 0)) - (a[1] * (DISTRACTOR_WEIGHTS[a[0]] ?? 0)))
+    .slice(0, 5);
 
   // Human-readable signal interpretations
   const eyeStatus   = focus.ear > 0.22 ? "good" : focus.ear > 0.18 ? "warn" : "bad";

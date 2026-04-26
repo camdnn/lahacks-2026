@@ -34,7 +34,7 @@ const TIPS: Record<string, string> = {
 };
 
 const DISTRACTOR_LABELS: Record<string, string> = {
-  microsleep:      "Microsleep detected",
+  microsleep:      "Eyes Closed",
   yawn:            "Yawning",
   phone_check:     "Phone check",
   head_tilt:       "Head tilt",
@@ -204,16 +204,37 @@ export default function SessionSummary() {
   const blobBase = entered ? grade.blob : "cheering";
   const { blobState, onPet } = usePettable(blobBase);
 
-  const topDistractors = (
-    summary.top_distractors.length > 0
-      ? summary.top_distractors
+  const SUMMARY_WEIGHTS: Record<string, number> = {
+    microsleep: 4, phone_check: 5, yawn: 3, tab_switch: 2, eyes_off_screen: 2, head_tilt: 1,
+  };
+
+  const topDistractors = (() => {
+    const fromBackend = summary.top_distractors ?? [];
+    const seen = new Set(fromBackend.map((d: { type: string }) => d.type));
+    // Add any events from event_counts that backend's top_distractors missed
+    const fromCounts = Object.entries(summary.event_counts ?? {})
+      .filter(([type, v]) => (v as number) > 0 && !seen.has(type))
+      .map(([type, count]) => ({
+        type,
+        count: count as number,
+        impact: (count as number) * (SUMMARY_WEIGHTS[type] ?? 1),
+      }));
+    const merged = fromBackend.length > 0
+      ? [...fromBackend, ...fromCounts]
       : Object.entries(summary.event_counts ?? {})
-          .filter(([, v]) => v > 0)
+          .filter(([, v]) => (v as number) > 0)
           .slice(0, 5)
-          .map(([type, count]) => ({ type, count, impact: 0 }))
-  )
-    .slice()
-    .sort((a, b) => (b.impact * b.count - a.impact * a.count) || (b.count - a.count));
+          .map(([type, count]) => ({
+            type,
+            count: count as number,
+            impact: (count as number) * (SUMMARY_WEIGHTS[type] ?? 1),
+          }));
+    return merged
+      .slice()
+      .sort((a, b) =>
+        (b.impact * b.count - a.impact * a.count) || (b.count - a.count)
+      );
+  })();
 
   const totalEvents = topDistractors.reduce((sum, d) => sum + d.count, 0);
 

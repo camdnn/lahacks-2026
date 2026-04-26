@@ -100,7 +100,7 @@ function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 // ── constants ──────────────────────────────────────────────────────────────────
 
 const WEIGHTS: Record<string, number> = {
-  microsleep:     10,
+  microsleep:      4,
   phone_check:     5,
   yawn:            3,
   tab_switch:      2,
