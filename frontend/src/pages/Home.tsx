@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, ShoppingBag, HelpCircle, Info, Download } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -68,6 +68,15 @@ export default function HomeDashboard() {
               </div>
               <hr className="border-border mb-2" />
               <button
+                onClick={() => { setProfileOpen(false); navigate("/store"); }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer mb-1"
+                onMouseEnter={e => (e.currentTarget.style.background = "#FFF3D6")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <ShoppingBag className="size-4" style={{ color: "#F08F60" }} />
+                Character Shop
+              </button>
+              <button
                 onClick={() => { logout(); setProfileOpen(false); }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
                 style={{ color: "#E26656" }}
@@ -82,21 +91,50 @@ export default function HomeDashboard() {
         </div>
       </header>
 
-      {/* Full-height action cards */}
-      <main className="flex-1 grid sm:grid-cols-2">
-        {/* Start Session */}
-        <button
-          onClick={() => navigate("/start")}
-          className="group relative overflow-hidden flex flex-col items-center justify-center p-16 gap-10 text-center cursor-pointer border-r border-border bg-card hover:bg-primary/5 transition-all duration-200"
-        >
-          <div className="flex items-end gap-4 pointer-events-none">
-            <Blob palette="peach" shape="classic" size={80} state="idle" showGround />
-            <Blob palette="cream" shape="wide" size={170} state="encouraging" showGround />
-            <Blob palette="honey" shape="baby" size={70} state="idle" showGround />
-          </div>
-          <div>
-            <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto group-hover:scale-105 transition-transform">
-              <Play className="size-8 text-primary" />
+      {/* Main */}
+      <main className="flex-1 flex flex-col items-center justify-center gap-12 px-8 py-12">
+        {/* Welcome */}
+        <div className="text-center">
+          <h1 className="text-4xl font-black tracking-tight mb-2">
+            Hey{profile?.username ? `, ${profile.username}` : profile?.email ? `, ${profile.email.split("@")[0]}` : ""}!
+          </h1>
+          <p className="text-muted-foreground text-lg font-semibold">Ready to crush your focus session?</p>
+        </div>
+
+        {/* Mascot trio */}
+        <div className="flex items-end gap-6">
+          <Blob palette="peach" shape="classic" size={90} state="idle" showGround />
+          <Blob palette="cream" shape="wide" size={180} state="encouraging" showGround />
+          <Blob palette="honey" shape="baby" size={75} state="idle" showGround />
+        </div>
+
+        {/* Action cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-2xl">
+          <button
+            onClick={() => navigate("/start")}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
+          >
+            <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+              <Play className="size-6 text-primary" />
+            </div>
+            <h3 className="font-black text-lg mb-1">Start Session</h3>
+            <p className="text-sm text-muted-foreground font-semibold">General or specialized focus mode</p>
+          </button>
+
+          <button
+            onClick={() => navigate("/store")}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
+          >
+            <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#FFF3D6" }}>
+              <ShoppingBag className="size-6" style={{ color: "#C97A3F" }} />
+            </div>
+            <h3 className="font-black text-lg mb-1">Character Shop</h3>
+            <p className="text-sm text-muted-foreground font-semibold">Spend coins on new blobs</p>
+          </button>
+
+          <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left opacity-40 cursor-not-allowed select-none">
+            <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#D9F0D3" }}>
+              <BarChart2 className="size-6" style={{ color: "#7FB069" }} />
             </div>
             <h3 className="font-black text-4xl mb-2">Start Session</h3>
             <p className="text-muted-foreground font-semibold text-base">General or specialized focus mode</p>
@@ -129,15 +167,27 @@ export default function HomeDashboard() {
             Hey{profile?.username ? `, ${profile.username}` : profile?.email ? `, ${profile.email.split("@")[0]}` : ""}! Keep your streak alive — start a session today!
           </span>
         </div>
-        <a
-          href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
-          download="Pudge.dmg"
-          className="shrink-0 flex items-center gap-2 px-4 py-2 border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
-        >
-          <Download className="size-3" />
-          Get Pudge for desktop
-        </a>
-      </div>
+
+        {/* Secondary links */}
+        <div className="flex items-center gap-6 text-xs font-bold text-muted-foreground">
+          <button
+            onClick={() => navigate("/faq")}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer bg-transparent border-none font-bold text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
+            <HelpCircle className="size-3.5" />
+            FAQ
+          </button>
+          <button
+            onClick={() => navigate("/about")}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer bg-transparent border-none font-bold text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
+            <Info className="size-3.5" />
+            About Bloom
+          </button>
+        </div>
+      </main>
     </div>
   );
 }
