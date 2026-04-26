@@ -156,18 +156,22 @@ export default function StartFocus() {
               autoPlay
               muted
               playsInline
-              className="w-full rounded-2xl object-cover aspect-video border-2 border-orange-500/40"
-              style={{ transform: "scaleX(-1)" }}
+              className="w-full rounded-2xl object-cover aspect-video border-2"
+              style={{ borderColor: "rgba(240,143,96,0.4)", transform: "scaleX(-1)" }}
             />
           ) : (
             <div className="w-full rounded-2xl aspect-video bg-muted/30 border-2 border-border/30 flex items-center justify-center">
               <p className="text-sm text-muted-foreground animate-pulse">Requesting camera…</p>
             </div>
           )}
-          <div className={`absolute bottom-2 left-2 right-2 flex items-center justify-center py-1 rounded-xl text-xs font-semibold backdrop-blur-sm ${
-            calibStream ? "bg-emerald-500/30 text-emerald-200" : "bg-muted/50 text-muted-foreground"
-          }`}>
-            {calibStream ? "👁 Pudge can see you" : "⏳ Waiting for camera…"}
+          <div style={{
+            position: "absolute", bottom: 8, left: 8, right: 8,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "4px 0", borderRadius: 12, fontSize: 11, fontWeight: 700, backdropFilter: "blur(8px)",
+            background: calibStream ? "rgba(127,176,105,0.25)" : "rgba(61,42,27,0.1)",
+            color: calibStream ? "#7FB069" : "#806550",
+          }}>
+            {calibStream ? "Pudge can see you" : "Waiting for camera…"}
           </div>
         </div>
 
@@ -188,7 +192,7 @@ export default function StartFocus() {
               <circle
                 cx="40" cy="40" r="34"
                 stroke="currentColor" strokeWidth="6" fill="none"
-                className="text-orange-500 transition-all duration-1000"
+                className="text-primary transition-all duration-1000"
                 strokeDasharray={`${2 * Math.PI * 34}`}
                 strokeDashoffset={`${2 * Math.PI * 34 * (1 - pct / 100)}`}
                 strokeLinecap="round"
@@ -230,12 +234,12 @@ export default function StartFocus() {
               onClick={() => setSessionType(t)}
               className={`relative rounded-2xl border-2 p-4 text-left cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md active:scale-[0.98] ${
                 sessionType === t
-                  ? "border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30 shadow-sm"
-                  : "border-border/60 hover:border-border"
+                  ? "border-primary bg-accent shadow-sm"
+                  : "border-border hover:border-primary"
               }`}
             >
               {sessionType === t && (
-                <span className="absolute top-2 right-2 size-5 bg-orange-500 rounded-full flex items-center justify-center">
+                <span className="absolute top-2 right-2 size-5 bg-primary rounded-full flex items-center justify-center">
                   <Check className="size-3 text-white" />
                 </span>
               )}
@@ -264,8 +268,8 @@ export default function StartFocus() {
                 onClick={() => setDuration(d)}
                 className={`flex items-center cursor-pointer gap-1.5 px-4 py-2 rounded-full text-sm font-black border-2 transition-all hover:scale-105 active:scale-95 ${
                   duration === d
-                    ? "border-orange-500 bg-orange-500 text-white"
-                    : "border-border/60 hover:border-border"
+                    ? "border-primary bg-primary text-primary-foreground scale-105"
+                    : "border-border bg-card text-foreground hover:border-primary"
                 }`}
               >
                 <Clock className="size-3" /> {d}m
@@ -286,8 +290,8 @@ export default function StartFocus() {
                 onClick={() => setPreset(id)}
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-black cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] ${
                   preset === id
-                    ? "border-orange-500 bg-orange-500/10 text-primary"
-                    : "border-border/60 hover:border-border text-muted-foreground"
+                    ? "border-primary bg-accent text-primary"
+                    : "border-border text-muted-foreground hover:border-primary"
                 }`}
               >
                 <Icon className="size-4" />
@@ -295,7 +299,7 @@ export default function StartFocus() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-card border border-border/60">
+          <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-card border border-border">
             {ALL_CHECKS.map(({ id, label }) => (
               <label
                 key={id}
@@ -314,7 +318,7 @@ export default function StartFocus() {
                       e.target.checked ? prev.filter(x => x !== id) : [...prev, id]
                     )
                   }
-                  className="accent-orange-500"
+                  style={{ accentColor: "#F08F60" }}
                 />
                 {label}
               </label>
