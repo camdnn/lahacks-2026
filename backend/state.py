@@ -3,11 +3,11 @@ from datetime import datetime
 
 DISTRACTOR_WEIGHTS = {
     "microsleep":      10,
-    "phone_check":      5,
+    "phone_check":      2,
     "disallowed_tab":   4,
     "yawn":             3,
     "tab_switch":       2,
-    "eyes_off_screen":  2,
+    "eyes_off_screen":  1,
     "rewind":           2,
     "head_tilt":        1,
 }
