@@ -913,6 +913,10 @@ export default function Homepage() {
   const cta = () => navigate(!loading && session ? "/home" : "/login");
   const ctaFocus = () => navigate(!loading && session ? "/home" : "/register");
 
+  useEffect(() => {
+    if (!loading && session) navigate("/home", { replace: true });
+  }, [session, loading, navigate]);
+
   return (
     <div
       style={{

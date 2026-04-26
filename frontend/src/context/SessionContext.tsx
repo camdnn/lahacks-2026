@@ -28,12 +28,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const start = useCallback(async (type: string, durMins?: number, tabs: string[] = []) => {
-    const { data } = await apiStart({
-      session_type: type,
-      focus_duration_mins: durMins,
-      allowed_tabs: tabs,
-    });
-    setSessionId(data.session_id);
+    let sessionId = crypto.randomUUID();
+    try {
+      const { data } = await apiStart({
+        session_type: type,
+        focus_duration_mins: durMins,
+        allowed_tabs: tabs,
+      });
+      sessionId = data.session_id;
+    } catch {
+      // backend unavailable — run session locally
+    }
+    setSessionId(sessionId);
     setSessionType(type);
     setAllowedTabs(tabs);
     setDurationMins(durMins ?? null);

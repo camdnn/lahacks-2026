@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Blob, usePettable } from "../components/Blob";
 import { Button } from "../components/ui/Button";
-import { Coins, Trophy, Home, RotateCcw } from "lucide-react";
+import { Trophy, Home, RotateCcw } from "lucide-react";
+import { CartoonCoin } from "../components/CartoonCoin";
 
 const TIPS: Record<string, string> = {
   microsleep:      "Try intentional blinking every few minutes to reduce eye strain.",
@@ -86,7 +87,7 @@ export default function SessionSummary() {
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">
           No summary data.{" "}
-          <button onClick={() => navigate("/")} className="underline">
+          <button onClick={() => navigate("/home")} className="underline">
             Go home
           </button>
         </p>
@@ -171,7 +172,7 @@ export default function SessionSummary() {
             </div>
           </div>
           <div className="rounded-2xl border border-border/60 bg-card p-6 text-center">
-            <Coins className="size-7 mx-auto mb-2 text-amber-500" />
+            <div className="flex justify-center mb-2"><CartoonCoin size={40} /></div>
             <div className="text-5xl font-black tabular-nums text-amber-500">
               +{animCoins}
             </div>
@@ -234,7 +235,7 @@ export default function SessionSummary() {
             <RotateCcw className="size-4" /> New Session
           </Button>
           <Button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/home")}
             variant="outline"
             className="flex-1 h-12 gap-2"
           >

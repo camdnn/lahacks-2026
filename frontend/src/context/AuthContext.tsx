@@ -54,13 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, s) => {
         setSession(s);
+        setLoading(false);
         if (s) {
           const p = await fetchProfile(s.user.id);
           setProfile(p);
         } else {
           setProfile(null);
         }
-        setLoading(false);
       }
     );
     return () => subscription.unsubscribe();
@@ -88,7 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, resetTimeout]);
 
   const loginWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const deadline = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Sign-in timed out — please refresh and try again.")), 10000)
+    );
+    const { error } = await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      deadline,
+    ]) as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
     if (error) throw error;
   }, []);
 
