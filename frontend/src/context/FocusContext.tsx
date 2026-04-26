@@ -37,6 +37,9 @@ interface FocusState {
   blink_rate:      number;
 }
 
+export interface TimelinePoint { elapsed: number; score: number }
+export interface EventPoint    { elapsed: number; type: string }
+
 interface FocusCtx extends FocusState {
   connected:           boolean;
   cameraStream:        MediaStream | null;
@@ -46,6 +49,7 @@ interface FocusCtx extends FocusState {
   keyPoints:           KeyPoints | null;
   nextCoinPct:         number;
   secsToScoreRecovery: number;
+  getTimelines: () => { focus: TimelinePoint[]; events: EventPoint[] };
 }
 
 // ── utility functions ──────────────────────────────────────────────────────────
@@ -162,6 +166,7 @@ const FocusContext = createContext<FocusCtx>({
   ...DEFAULTS, connected: false, cameraStream: null,
   coinsEarned: 0, multiplier: 1, streak_secs: 0, keyPoints: null,
   nextCoinPct: 0, secsToScoreRecovery: 0,
+  getTimelines: () => ({ focus: [], events: [] }),
 });
 
 // ── provider ───────────────────────────────────────────────────────────────────
@@ -194,6 +199,16 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const scoreRef       = useRef<number>(100);
   const lastRegenRef   = useRef<number>(0);
 
+  const sessionStartRef    = useRef<number>(0);
+  const focusTimelineRef   = useRef<TimelinePoint[]>([]);
+  const eventTimelineRef   = useRef<EventPoint[]>([]);
+  const timelineTickRef    = useRef<number>(0);
+
+  const getTimelines = useCallback(() => ({
+    focus:  [...focusTimelineRef.current],
+    events: [...eventTimelineRef.current],
+  }), []);
+
   const sus = useRef({ eyesClosed: 0, yawn: 0, headTilt: 0, phone: 0, noFace: 0, yaw: 0, gaze: 0 });
   const cal = useRef({
     noseBaseline: 0.57, tiltBaseline: 0,
@@ -209,6 +224,12 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     streakSecsRef.current = 0;
     lastRegenRef.current  = 0;
     scoreRef.current = Math.max(0, scoreRef.current - (WEIGHTS[type] ?? 0));
+    if (sessionStartRef.current > 0) {
+      eventTimelineRef.current.push({
+        elapsed: Math.round((Date.now() - sessionStartRef.current) / 1000),
+        type,
+      });
+    }
     const sid = sessionIdRef.current;
     if (sid) logEvent({ session_id: sid, event_type: type }).catch(() => {});
   }, []);
@@ -237,6 +258,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       coinsAccRef.current = 0;
       scoreRef.current = 100;
       lastRegenRef.current = 0;
+      focusTimelineRef.current = [];
+      eventTimelineRef.current = [];
+      timelineTickRef.current = 0;
+      sessionStartRef.current = 0;
       setCoinsEarned(0);
       setNextCoinPct(0);
       setSecsToScoreRecovery(0);
@@ -247,6 +272,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     const calNose: number[] = [], calTilt: number[] = [], calEar: number[] = [];
     const calDeadline = Date.now() + 3000;
     let lastMs = performance.now();
+    sessionStartRef.current = Date.now();
+    focusTimelineRef.current = [];
+    eventTimelineRef.current = [];
+    timelineTickRef.current = 0;
 
     async function init() {
       const vision = await FilesetResolver.forVisionTasks(
@@ -283,6 +312,15 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         const now = performance.now();
         const dt  = (now - lastMs) / 1000;
         lastMs = now;
+
+        timelineTickRef.current += dt;
+        if (timelineTickRef.current >= 10) {
+          timelineTickRef.current = 0;
+          focusTimelineRef.current.push({
+            elapsed: Math.round((Date.now() - sessionStartRef.current) / 1000),
+            score: Math.round(scoreRef.current),
+          });
+        }
 
         const res  = landmarkerRef.current.detectForVideo(videoRef.current, now);
         const lmks = res.faceLandmarks?.[0];
@@ -543,7 +581,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     <FocusContext.Provider value={{
       ...data, connected, cameraStream,
       coinsEarned, multiplier, streak_secs: streakSecs, keyPoints,
-      nextCoinPct, secsToScoreRecovery,
+      nextCoinPct, secsToScoreRecovery, getTimelines,
     }}>
       {children}
     </FocusContext.Provider>
