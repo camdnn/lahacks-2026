@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
+import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from "../components/ui/Label";
 import { Blob, type BlobState } from "../components/Blob";
+import { CHARACTERS, getCharacter } from "../data/characters";
 import { ArrowLeft, BookOpen, Check, Clock, Code2, Globe, PenLine, Settings2, Users, Zap } from "lucide-react";
 
 const DURATIONS = [15, 25, 45, 60, 90];
@@ -31,6 +33,13 @@ type Step = "config" | "calibrating" | "done";
 export default function StartFocus() {
   const navigate = useNavigate();
   const { start } = useSession();
+  const { profile, setActiveCharacter } = useAuth();
+  const ownedKeys = profile?.owned_characters ?? ["cream_wide"];
+  const ownedChars = CHARACTERS.filter((c) => ownedKeys.includes(c.key));
+  const [selectedCharKey, setSelectedCharKey] = useState<string>(
+    profile?.active_character ?? "cream_wide"
+  );
+  const selectedChar = getCharacter(selectedCharKey);
   const [step, setStep]                 = useState<Step>("config");
   const [sessionType, setSessionType]   = useState<"general" | "specialized">("general");
   const [duration, setDuration]         = useState(25);
@@ -93,19 +102,20 @@ export default function StartFocus() {
   };
 
   const handleCalibrate = async () => {
-    setStep("calibrating");
     setError("");
 
-    // Start a temporary camera preview so user can see they're in frame
+    // Acquire camera BEFORE switching screens so the countdown and 5s sleep start together
     let localStream: MediaStream | null = null;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      setCalibStream(localStream);
     } catch { /* permission denied — show placeholder */ }
+
+    setCalibStream(localStream);
+    setStep("calibrating"); // countdown effect fires here, aligned with the sleep below
 
     await new Promise(r => setTimeout(r, 5000));
 
-    // Stop preview before FocusContext opens its own stream (use local var to avoid stale closure)
+    // Stop preview before FocusContext opens its own stream
     localStream?.getTracks().forEach(t => t.stop());
     setCalibStream(null);
 
@@ -120,6 +130,7 @@ export default function StartFocus() {
   const handleStart = async () => {
     setLoading(true);
     setError("");
+    setActiveCharacter(selectedCharKey);
     try {
       await start(sessionType, duration, sessionType === "specialized" ? allowedTabs : [], finalDisabled);
       navigate("/session");
@@ -176,8 +187,8 @@ export default function StartFocus() {
         </div>
 
         <Blob
-          palette="cream"
-          shape="wide"
+          palette={selectedChar.palette}
+          shape={selectedChar.shape}
           size={140}
           state={calibBlink ? "sleeping" : calibStream ? "cheering" : "focused"}
           eyeTarget={mousePos}
@@ -220,11 +231,11 @@ export default function StartFocus() {
         </button>
 
         <div className="flex justify-center mb-8">
-          <Blob palette="cream" shape="wide" size={130} state={pudgeState} eyeTarget={mousePos} showGround />
+          <Blob palette={selectedChar.palette} shape={selectedChar.shape} size={130} state={pudgeState} eyeTarget={mousePos} showGround />
         </div>
 
         <h1 className="text-3xl font-black text-center tracking-tight mb-2">Start a Focus Session</h1>
-        <p className="text-muted-foreground text-center mb-8 font-semibold">Pudge will keep an eye on you</p>
+        <p className="text-muted-foreground text-center mb-8 font-semibold">{selectedChar.name} will keep an eye on you</p>
 
         {/* Session type */}
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -323,6 +334,40 @@ export default function StartFocus() {
                 {label}
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Companion picker */}
+        <div className="mb-6">
+          <Label className="mb-3 block font-black text-sm uppercase tracking-wide text-muted-foreground">
+            Your Companion
+          </Label>
+          <div className="flex gap-2 flex-wrap">
+            {ownedChars.map((char) => (
+              <button
+                key={char.key}
+                onClick={() => setSelectedCharKey(char.key)}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-2xl border-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] ${
+                  selectedCharKey === char.key
+                    ? "border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30"
+                    : "border-border/60 hover:border-border"
+                }`}
+              >
+                <Blob palette={char.palette} shape={char.shape} size={56} state="idle" showGround />
+                <span className={`text-xs font-black ${selectedCharKey === char.key ? "text-primary" : "text-muted-foreground"}`}>
+                  {char.name}
+                </span>
+              </button>
+            ))}
+            {ownedChars.length < CHARACTERS.length && (
+              <button
+                onClick={() => navigate("/store")}
+                className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl border-2 border-dashed border-border/50 cursor-pointer hover:border-border transition-colors min-w-18"
+              >
+                <span className="text-2xl text-muted-foreground/50">+</span>
+                <span className="text-xs font-black text-muted-foreground/50">More</span>
+              </button>
+            )}
           </div>
         </div>
 

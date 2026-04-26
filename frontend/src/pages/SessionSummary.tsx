@@ -2,24 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Blob, usePettable } from "../components/Blob";
 import { CartoonCoin } from "../components/CartoonCoin";
-import { RotateCcw, Home } from "lucide-react";
-
-// ── Bloom palette ──────────────────────────────────────────────
-const C = {
-  bg:         "#FBF1E5",
-  card:       "#FFFAF1",
-  border:     "#EAD7BE",
-  ink:        "#3D2A1B",
-  soft:       "#806550",
-  accent:     "#F08F60",
-  accentSoft: "#FFE8D9",
-  green:      "#7FB069",
-  greenSoft:  "#D9F0D3",
-  red:        "#E26656",
-  redSoft:    "#FFE0DB",
-  yellow:     "#F5C24A",
-  yellowSoft: "#FFF3D6",
-};
+import { useAuth } from "../context/AuthContext";
+import { getCharacter } from "../data/characters";
 
 const TIPS: Record<string, string> = {
   microsleep:      "Try intentional blinking every few minutes to reduce eye strain and prevent fatigue.",
@@ -147,6 +131,8 @@ export default function SessionSummary() {
   const navigate = useNavigate();
   const { state: routeState } = useLocation();
   const summary: SummaryData | null = routeState?.summary ?? null;
+  const { profile } = useAuth();
+  const activeChar = getCharacter(profile?.active_character ?? "cream_wide");
 
   const [animScore, setAnimScore] = useState(0);
   const [animCoins, setAnimCoins] = useState(0);
@@ -195,9 +181,26 @@ export default function SessionSummary() {
 
   const score = Math.round(summary.focus_score);
   const grade =
-    score >= 90 ? { label: "Excellent!",  sub: "Pudge is so proud of you.",              color: C.green,  blob: "cheering"    as const }
-    : score >= 70 ? { label: "Good Job!",  sub: "A solid session — keep it up.",          color: C.yellow, blob: "encouraging" as const }
-    : { label: "Keep At It",               sub: "Every session makes you stronger.",      color: C.red,    blob: "sad"         as const };
+    summary.focus_score >= 90
+      ? {
+          label: "Excellent!",
+          sub: `${activeChar.name} is so proud of you.`,
+          color: "text-emerald-400",
+          blob: "cheering" as const,
+        }
+      : summary.focus_score >= 70
+        ? {
+            label: "Good Job!",
+            sub: "A solid session — keep it up.",
+            color: "text-amber-400",
+            blob: "encouraging" as const,
+          }
+        : {
+            label: "Keep At It",
+            sub: "Every session makes you stronger.",
+            color: "text-red-400",
+            blob: "sad" as const,
+          };
 
   const blobBase = entered ? grade.blob : "cheering";
   const { blobState, onPet } = usePettable(blobBase);
@@ -228,17 +231,16 @@ export default function SessionSummary() {
         <div style={{ position: "absolute", top: "-20%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: "-30%", left: "5%",  width: 240, height: 240, borderRadius: "50%", background: "rgba(0,0,0,0.06)", pointerEvents: "none" }} />
 
-        {/* Logo */}
-        <div style={{ position: "absolute", top: 20, left: 28, display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(255,255,255,0.6)" }} />
-          </div>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", opacity: 0.9 }}>Bloom</span>
-        </div>
-
-        {/* Mascot */}
-        <div style={{ position: "relative", zIndex: 1, cursor: "pointer" }} title="Pet Pudge!" onClick={onPet}>
-          <Blob palette="cream" shape="wide" size={160} state={blobState} eyeTarget={mousePos} showGround />
+        <div className="relative z-10 cursor-pointer" title={`Pet ${activeChar.name}!`}>
+          <Blob
+            palette={activeChar.palette}
+            shape={activeChar.shape}
+            size={180}
+            state={blobState}
+            eyeTarget={mousePos}
+            showGround
+            onClick={onPet}
+          />
         </div>
 
         {/* Grade text */}
@@ -246,9 +248,10 @@ export default function SessionSummary() {
           <h1 style={{ fontSize: 40, fontWeight: 900, letterSpacing: -1.5, color: "#fff", marginBottom: 6 }}>
             {grade.label}
           </h1>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.75)", marginBottom: 4 }}>{grade.sub}</p>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>
-            {summary.duration_mins}min session complete · click Pudge to celebrate!
+          <p className="text-primary-foreground/70 mt-1">{grade.sub}</p>
+          <p className="text-primary-foreground/50 text-sm mt-0.5">
+            {summary.duration_mins}min session complete · click {activeChar.name} to
+            celebrate!
           </p>
         </div>
       </div>
@@ -365,10 +368,16 @@ export default function SessionSummary() {
               })}
             </div>
           </div>
-        ) : (
-          <div style={{ marginBottom: 24, background: C.greenSoft, border: `1.5px solid ${C.green}`, borderRadius: 18, padding: "20px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: C.green, marginBottom: 4 }}>Zero distractions detected!</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.soft }}>Pudge is very impressed. You're in the zone!</div>
+        )}
+
+        {topDistractors.length === 0 && (
+          <div className="mb-8 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">
+            <p className="text-emerald-400 font-semibold">
+              Zero distractions detected!
+            </p>
+            <p className="text-muted-foreground text-sm mt-1">
+              {activeChar.name} is very impressed.
+            </p>
           </div>
         )}
 
