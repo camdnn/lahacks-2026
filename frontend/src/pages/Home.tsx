@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, ShoppingBag, HelpCircle, Info, Download } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -68,6 +68,15 @@ export default function HomeDashboard() {
               </div>
               <hr className="border-border mb-2" />
               <button
+                onClick={() => { setProfileOpen(false); navigate("/store"); }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer mb-1"
+                onMouseEnter={e => (e.currentTarget.style.background = "#FFF3D6")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <ShoppingBag className="size-4" style={{ color: "#F08F60" }} />
+                Character Shop
+              </button>
+              <button
                 onClick={() => { logout(); setProfileOpen(false); }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
                 style={{ color: "#E26656" }}
@@ -100,7 +109,7 @@ export default function HomeDashboard() {
         </div>
 
         {/* Action cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-2xl">
           <button
             onClick={() => navigate("/start")}
             className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
@@ -110,6 +119,17 @@ export default function HomeDashboard() {
             </div>
             <h3 className="font-black text-lg mb-1">Start Session</h3>
             <p className="text-sm text-muted-foreground font-semibold">General or specialized focus mode</p>
+          </button>
+
+          <button
+            onClick={() => navigate("/store")}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
+          >
+            <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#FFF3D6" }}>
+              <ShoppingBag className="size-6" style={{ color: "#C97A3F" }} />
+            </div>
+            <h3 className="font-black text-lg mb-1">Character Shop</h3>
+            <p className="text-sm text-muted-foreground font-semibold">Spend coins on new blobs</p>
           </button>
 
           <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left opacity-40 cursor-not-allowed select-none">
@@ -145,6 +165,26 @@ export default function HomeDashboard() {
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
           <Flame className="size-4" style={{ color: "#F08F60" }} />
           <span>Keep your streak alive — start a session today!</span>
+        </div>
+
+        {/* Secondary links */}
+        <div className="flex items-center gap-6 text-xs font-bold text-muted-foreground">
+          <button
+            onClick={() => navigate("/faq")}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer bg-transparent border-none font-bold text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
+            <HelpCircle className="size-3.5" />
+            FAQ
+          </button>
+          <button
+            onClick={() => navigate("/about")}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer bg-transparent border-none font-bold text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
+            <Info className="size-3.5" />
+            About Bloom
+          </button>
         </div>
       </main>
     </div>
