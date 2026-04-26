@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, BarChart2, LogOut, ChevronDown, ShoppingBag, Play } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -97,26 +97,36 @@ export default function HomeDashboard() {
                   Sign out
                 </button>
               </div>
-            )}
-          </div>
+              <hr className="border-border mb-2" />
+              <button
+                onClick={() => { logout(); setProfileOpen(false); }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
+                style={{ color: "#E26656" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#FFE0DB")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <LogOut className="size-4" />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Full-screen two-panel layout */}
-      <main className="flex-1 flex overflow-hidden">
+      {/* Full-height action cards */}
+      <main className="flex-1 grid sm:grid-cols-2">
         {/* Start Session */}
         <button
           onClick={() => navigate("/start")}
-          className="group flex-1 flex flex-col items-center justify-center gap-8 bg-background hover:bg-primary/5 transition-colors duration-200 cursor-pointer border-none"
+          className="group relative overflow-hidden flex flex-col items-center justify-center p-16 gap-10 text-center cursor-pointer border-r border-border bg-card hover:bg-primary/5 transition-all duration-200"
         >
-          <div className="pointer-events-none">
-            <Blob palette="cream" shape="wide" size={180} state="encouraging" showGround />
+          <div className="flex items-end gap-4 pointer-events-none">
+            <Blob palette="peach" shape="classic" size={80} state="idle" showGround />
+            <Blob palette="cream" shape="wide" size={170} state="encouraging" showGround />
+            <Blob palette="honey" shape="baby" size={70} state="idle" showGround />
           </div>
-          <div className="flex flex-col items-center gap-3">
-            <div
-              className="size-16 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform"
-              style={{ background: "rgba(240,143,96,0.12)" }}
-            >
+          <div>
+            <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto group-hover:scale-105 transition-transform">
               <Play className="size-8 text-primary" />
             </div>
             <h2 className="font-black text-3xl tracking-tight">Start Session</h2>
@@ -147,6 +157,24 @@ export default function HomeDashboard() {
           </div>
         </button>
       </main>
+
+      {/* Bottom bar */}
+      <div className="shrink-0 border-t border-border bg-card px-8 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
+          <Flame className="size-4" style={{ color: "#F08F60" }} />
+          <span>
+            Hey{profile?.username ? `, ${profile.username}` : profile?.email ? `, ${profile.email.split("@")[0]}` : ""}! Keep your streak alive — start a session today!
+          </span>
+        </div>
+        <a
+          href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
+          download="Pudge.dmg"
+          className="shrink-0 flex items-center gap-2 px-4 py-2 border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+        >
+          <Download className="size-3" />
+          Get Pudge for desktop
+        </a>
+      </div>
     </div>
   );
 }

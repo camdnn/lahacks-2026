@@ -4,10 +4,28 @@ import { useSession } from "../context/SessionContext";
 import { useFocus } from "../context/FocusContext";
 import { useAuth } from "../context/AuthContext";
 import { Blob, type BlobState } from "../components/Blob";
-import { Button } from "../components/ui/Button";
 import { Download, ChevronDown, LogOut } from "lucide-react";
 import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
+
+// ── Bloom palette ──────────────────────────────────────────────
+const C = {
+  bg:          "#FBF1E5",
+  card:        "#FFFAF1",
+  border:      "#EAD7BE",
+  ink:         "#3D2A1B",
+  soft:        "#806550",
+  accent:      "#F08F60",
+  accentSoft:  "#FFE8D9",
+  green:       "#7FB069",
+  greenSoft:   "#D9F0D3",
+  red:         "#E26656",
+  redSoft:     "#FFE0DB",
+  yellow:      "#F5C24A",
+  yellowSoft:  "#FFF3D6",
+  panelBg:     "#1E0F06",
+  panelBorder: "rgba(234,215,190,0.12)",
+};
 
 const T_WINDOW_S = 60;
 
@@ -18,12 +36,12 @@ function fmt(secs: number) {
 }
 
 const DISTRACTOR_LABELS: Record<string, string> = {
-  microsleep: "Eyes Closed",
-  yawn: "Yawn",
-  phone_check: "Phone Check",
-  head_tilt: "Head Tilt",
+  microsleep:      "Eyes Closed",
+  yawn:            "Yawn",
+  phone_check:     "Phone Check",
+  head_tilt:       "Head Tilt",
   eyes_off_screen: "Eyes Off Screen",
-  tab_switch: "Tab Switch",
+  tab_switch:      "Tab Switch",
 };
 
 function getBlobState(score: number, face: boolean): BlobState {
@@ -31,6 +49,24 @@ function getBlobState(score: number, face: boolean): BlobState {
   if (score >= 80) return "focused";
   if (score >= 50) return "encouraging";
   return "sad";
+}
+
+// ── Human-readable signal row ──────────────────────────────────
+function SignalRow({
+  label, value, status, hint,
+}: { label: string; value: string; status: "good" | "warn" | "bad"; hint: string }) {
+  const dot = status === "good" ? C.green : status === "warn" ? C.yellow : C.red;
+  const valColor = dot;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 7, height: 7, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(251,241,229,0.55)", lineHeight: 1 }}>{label}</div>
+        <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(251,241,229,0.3)", marginTop: 1 }}>{hint}</div>
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 900, color: valColor, fontFamily: "monospace", flexShrink: 0 }}>{value}</div>
+    </div>
+  );
 }
 
 export default function ActiveSession() {
@@ -47,10 +83,10 @@ export default function ActiveSession() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
-  const videoRef        = useRef<HTMLVideoElement>(null);
-  const canvasRef       = useRef<HTMLCanvasElement>(null);
-  const dropdownRef     = useRef<HTMLDivElement>(null);
-  const goingToSummary  = useRef(false);
+  const videoRef       = useRef<HTMLVideoElement>(null);
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const dropdownRef    = useRef<HTMLDivElement>(null);
+  const goingToSummary = useRef(false);
 
   useEffect(() => {
     if (!isActive && !ending && !goingToSummary.current) navigate("/home");
@@ -92,7 +128,6 @@ export default function ActiveSession() {
       return;
     }
 
-    // Match canvas to displayed video size
     const video = videoRef.current;
     if (video) {
       canvas.width  = video.offsetWidth;
@@ -101,7 +136,6 @@ export default function ActiveSession() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const W = canvas.width, H = canvas.height;
-    // Mirror x to align with the CSS-mirrored video
     const px = (x: number) => (1 - x) * W;
     const py = (y: number) => y * H;
 
@@ -118,42 +152,30 @@ export default function ActiveSession() {
 
     const { leftEye, rightEye, nose, tiltL, tiltR, lipTop, lipBot, mouthL, mouthR } = focus.keyPoints;
 
-    // Eyes — green healthy, red if EAR is low (near microsleep)
-    const eyeColor = focus.ear > 0.22 ? "#22c55e" : "#ef4444";
+    const eyeColor = focus.ear > 0.22 ? C.green : C.red;
     drawPoly(leftEye, eyeColor);
     drawPoly(rightEye, eyeColor);
 
-    // Tilt line — green normal, amber if tilted
     ctx.beginPath();
     ctx.moveTo(px(tiltL[0]), py(tiltL[1]));
     ctx.lineTo(px(tiltR[0]), py(tiltR[1]));
-    ctx.strokeStyle = Math.abs(focus.head_tilt) < 22 ? "#22c55e" : "#f59e0b";
+    ctx.strokeStyle = Math.abs(focus.head_tilt) < 22 ? C.green : C.yellow;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Mouth — green normal, red if yawning
-    const mouthColor = focus.mar < 0.48 ? "#22c55e" : "#ef4444";
+    const mouthColor = focus.mar < 0.48 ? C.green : C.red;
     drawPoly([mouthL, lipTop, mouthR, lipBot], mouthColor);
 
-    // Nose dot
     ctx.beginPath();
     ctx.arc(px(nose[0]), py(nose[1]), 3, 0, Math.PI * 2);
-    ctx.fillStyle = "#60a5fa";
+    ctx.fillStyle = "#7BC8F5";
     ctx.fill();
 
-    // Iris dots (gaze visualization) — purple when centered, amber when off-center
-    const irisColor = Math.abs(focus.gaze_x ?? 0) > 0.15 ? "#f59e0b" : "#a78bfa";
-    if (focus.keyPoints?.leftIris) {
-      const [ix, iy] = focus.keyPoints.leftIris;
+    const irisColor = Math.abs(focus.gaze_x ?? 0) > 0.15 ? C.yellow : "#b39ddb";
+    for (const iris of [focus.keyPoints?.leftIris, focus.keyPoints?.rightIris]) {
+      if (!iris) continue;
       ctx.beginPath();
-      ctx.arc(px(ix), py(iy), 3, 0, Math.PI * 2);
-      ctx.fillStyle = irisColor;
-      ctx.fill();
-    }
-    if (focus.keyPoints?.rightIris) {
-      const [ix, iy] = focus.keyPoints.rightIris;
-      ctx.beginPath();
-      ctx.arc(px(ix), py(iy), 3, 0, Math.PI * 2);
+      ctx.arc(px(iris[0]), py(iris[1]), 3, 0, Math.PI * 2);
       ctx.fillStyle = irisColor;
       ctx.fill();
     }
@@ -171,13 +193,13 @@ export default function ActiveSession() {
     const timelines = focus.getTimelines();
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 12_000)
+        setTimeout(() => reject(new Error("timeout")), 12_000)
       );
       const summary = await Promise.race([end(), timeoutPromise]);
       goingToSummary.current = true;
       navigate("/summary", { state: { summary: { ...summary, focus_timeline: timelines.focus, event_timeline: timelines.events } } });
     } catch (err) {
-      console.error('[handleEnd] falling back to local summary:', err);
+      console.error("[handleEnd] falling back to local summary:", err);
       const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
       updateCoins(newBalance);
       const localSummary = {
@@ -185,9 +207,7 @@ export default function ActiveSession() {
         focus_score: focus.focus_score,
         coins_earned: focus.coinsEarned,
         coin_balance: newBalance,
-        top_distractors: focus.top_distractors.map(([type, count]) => ({
-          type, count, impact: 0,
-        })),
+        top_distractors: focus.top_distractors.map(([type, count]) => ({ type, count, impact: 0 })),
         improvement_tips: {},
         event_counts: focus.counts,
         focus_timeline: timelines.focus,
@@ -204,318 +224,293 @@ export default function ActiveSession() {
   const progress  = durationMins ? Math.min(1, elapsed / (durationMins * 60)) : 0;
   const score = focus.focus_score;
 
-  const scoreColor = score >= 80 ? "text-emerald-500" : score >= 50 ? "text-amber-500" : "text-red-500";
-  const ringColor  = score >= 80 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+  const scoreColor = score >= 80 ? C.green : score >= 50 ? C.yellow : C.red;
+  const ringColor  = scoreColor;
 
   const topDistractors = Object.entries(focus.counts)
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
+  // Human-readable signal interpretations
+  const eyeStatus   = focus.ear > 0.22 ? "good" : focus.ear > 0.18 ? "warn" : "bad";
+  const mouthStatus = focus.mar < 0.48 ? "good" : "bad";
+  const yawStatus   = Math.abs(focus.yaw ?? 0) < 25 ? "good" : Math.abs(focus.yaw ?? 0) < 40 ? "warn" : "bad";
+  const pitchStatus = Math.abs(focus.pitch ?? 0) < 20 ? "good" : Math.abs(focus.pitch ?? 0) < 35 ? "warn" : "bad";
 
-      {/* Exit-session confirmation dialog */}
+  const eyeLabel   = focus.ear > 0.22 ? "Open" : focus.ear > 0.18 ? "Drowsy" : "Closed";
+  const mouthLabel = focus.mar < 0.48 ? "Closed" : "Open / Yawning";
+  const yawLabel   = Math.abs(focus.yaw ?? 0) < 25 ? "Centered" : (focus.yaw ?? 0) > 0 ? "Looking Left" : "Looking Right";
+  const pitchLabel = Math.abs(focus.pitch ?? 0) < 20 ? "Level" : (focus.pitch ?? 0) > 0 ? "Looking Down" : "Looking Up";
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: C.bg, color: C.ink, fontFamily: "Nunito, system-ui, sans-serif" }}>
+
+      {/* ── Exit dialog ── */}
       {showExitDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h2 className="text-lg font-black mb-1">End your session?</h2>
-            <p className="text-muted-foreground text-sm mb-6">
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(30,15,6,0.6)", backdropFilter: "blur(4px)" }}>
+          <div style={{ background: C.card, borderRadius: 24, border: `1.5px solid ${C.border}`, padding: 28, maxWidth: 360, width: "100%", margin: "0 16px", boxShadow: "0 16px 48px rgba(60,42,27,0.18)" }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 6 }}>End your session?</h2>
+            <p style={{ fontSize: 14, fontWeight: 600, color: C.soft, marginBottom: 24, lineHeight: 1.6 }}>
               Your progress and coins will be saved and you'll see your summary.
             </p>
-            <div className="flex gap-3">
-              <Button
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
                 onClick={() => { setShowExitDialog(false); handleEnd(); }}
                 disabled={ending}
-                className="flex-1 h-10"
+                style={{ flex: 1, height: 44, borderRadius: 12, background: C.accent, color: "#fff", border: "none", fontSize: 15, fontWeight: 900, cursor: "pointer", fontFamily: "inherit" }}
               >
-                {ending ? "Ending…" : "End & Go Home"}
-              </Button>
-              <Button
+                {ending ? "Ending…" : "End & See Summary"}
+              </button>
+              <button
                 onClick={() => setShowExitDialog(false)}
-                variant="outline"
-                className="flex-1 h-10"
+                style={{ flex: 1, height: 44, borderRadius: 12, background: C.bg, color: C.ink, border: `1.5px solid ${C.border}`, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
               >
                 Resume
-              </Button>
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-card shrink-0">
+      {/* ── Top bar ── */}
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 32px", borderBottom: `1.5px solid ${C.border}`, background: C.card, flexShrink: 0 }}>
         <button
           onClick={() => setShowExitDialog(true)}
-          className="flex items-center gap-2 text-lg font-bold cursor-pointer hover:opacity-75 transition-opacity"
+          style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
         >
-          <div style={{
-            width: 32, height: 32, borderRadius: 9, background: "#F08F60",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 6px rgba(240,143,96,0.35)",
-          }}>
-            <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#FFE8D9" }} />
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(240,143,96,0.35)" }}>
+            <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.accentSoft }} />
           </div>
-          <span className="font-black tracking-tight">Bloom</span>
+          <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: C.ink }}>Bloom</span>
         </button>
 
-        <div className="relative" ref={dropdownRef}>
+        <div style={{ position: "relative" }} ref={dropdownRef}>
           <button
             onClick={() => setProfileOpen(o => !o)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-accent transition-colors cursor-pointer"
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, border: `1.5px solid ${C.border}`, background: C.bg, cursor: "pointer", fontFamily: "inherit" }}
           >
-            <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-black text-primary select-none">
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: C.accent }}>
               {profile?.email?.[0]?.toUpperCase() ?? "U"}
             </div>
-            <span className="text-sm font-semibold max-w-45 truncate text-foreground">
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.ink, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {profile?.email ?? "Account"}
             </span>
-            <ChevronDown className={`size-3 text-muted-foreground transition-transform ${profileOpen ? "rotate-180" : ""}`} />
+            <ChevronDown style={{ width: 12, height: 12, color: C.soft, transform: profileOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border bg-card shadow-lg p-3 z-50">
-              <div className="px-2 py-1.5 mb-2">
-                <p className="text-xs text-muted-foreground mb-0.5 font-bold uppercase tracking-wide">Signed in as</p>
-                <p className="text-sm font-bold truncate">{profile?.email}</p>
+            <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 220, borderRadius: 18, border: `1.5px solid ${C.border}`, background: C.card, boxShadow: "0 8px 32px rgba(60,42,27,0.12)", padding: 12, zIndex: 50 }}>
+              <div style={{ padding: "6px 8px 10px", borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: C.soft, marginBottom: 3 }}>Signed in as</div>
+                <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile?.email}</div>
               </div>
-              <hr className="border-border mb-2" />
               <button
                 onClick={() => { logout(); setProfileOpen(false); }}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
-                style={{ color: "#E26656" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#FFE0DB")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: C.red }}
+                onMouseEnter={e => (e.currentTarget.style.background = C.redSoft)}
+                onMouseLeave={e => (e.currentTarget.style.background = "none")}
               >
-                <LogOut className="size-4" />
-                Sign out
+                <LogOut style={{ width: 14, height: 14 }} /> Sign out
               </button>
             </div>
           )}
         </div>
       </header>
 
-      {/* Desktop download hint */}
+      {/* ── Desktop download hint ── */}
       <a
-        href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
+        href={`${(import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "")}/download/overlay`}
         download="Pudge.dmg"
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-3 py-2 bg-card border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 shadow-sm transition-all"
+        style={{ position: "fixed", bottom: 20, right: 20, zIndex: 40, display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 999, fontSize: 12, fontWeight: 700, color: C.soft, textDecoration: "none", boxShadow: "0 2px 12px rgba(60,42,27,0.08)", transition: "all 0.15s" }}
       >
-        <Download className="size-3 shrink-0" />
+        <Download style={{ width: 12, height: 12, flexShrink: 0 }} />
         Get Pudge for desktop
       </a>
 
-      {/* Main content */}
-      <div className="flex-1 grid lg:grid-cols-2">
+      {/* ── Main grid ── */}
+      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
 
-        {/* Left — camera + mascot panel */}
-        <div className="hidden lg:flex flex-col items-center justify-center p-10 relative overflow-hidden gap-5" style={{ background: "linear-gradient(135deg, #1A0B04 0%, #2D1609 100%)" }}>
-          <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
+        {/* ── Left — camera + signals ── */}
+        <div
+          className="hidden lg:flex"
+          style={{ flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, gap: 20, background: C.panelBg, position: "relative", overflow: "hidden" }}
+        >
+          {/* Warm vignette */}
+          <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "80%", height: 200, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(240,143,96,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
 
-          {/* Camera preview with landmark canvas overlay */}
-          <div className="relative z-10 w-full max-w-65">
+          {/* Camera feed */}
+          <div style={{ position: "relative", width: "100%", maxWidth: 280, zIndex: 1 }}>
             {focus.cameraStream ? (
               <>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full rounded-2xl object-cover aspect-video border-2 border-white/20"
-                  style={{ transform: "scaleX(-1)" }}
+                <video ref={videoRef} autoPlay muted playsInline
+                  style={{ width: "100%", borderRadius: 18, objectFit: "cover", aspectRatio: "16/9", border: `2px solid ${C.panelBorder}`, transform: "scaleX(-1)" }}
                 />
-                <canvas
-                  ref={canvasRef}
-                  className="absolute inset-0 w-full h-full rounded-2xl pointer-events-none"
+                <canvas ref={canvasRef}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", borderRadius: 18, pointerEvents: "none" }}
                 />
               </>
             ) : (
-              <div className="w-full rounded-2xl aspect-video bg-black/30 border-2 border-white/10 flex items-center justify-center">
-                <div className="text-center text-primary-foreground/60">
-                  <div className="text-2xl mb-1 animate-pulse">👁</div>
-                  <p className="text-xs">
-                    {focus.connected ? "Camera starting…" : "Loading MediaPipe…"}
-                  </p>
-                </div>
+              <div style={{ width: "100%", borderRadius: 18, aspectRatio: "16/9", background: "rgba(0,0,0,0.35)", border: `2px solid ${C.panelBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
+                <p style={{ fontSize: 12, color: "rgba(251,241,229,0.4)", fontWeight: 600 }}>
+                  {focus.connected ? "Camera starting…" : "Loading MediaPipe…"}
+                </p>
               </div>
             )}
-            {/* Face detection badge over the preview */}
-            <div
-              className={`absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1.5 py-1 rounded-xl text-xs font-semibold backdrop-blur-sm ${
-                focus.face_detected
-                  ? "bg-emerald-500/30 text-emerald-200"
-                  : "bg-red-500/30 text-red-200"
-              }`}
-            >
-              {focus.face_detected ? "👁 Face detected" : "⚠ Face not detected"}
+            {/* Face detection badge */}
+            <div style={{
+              position: "absolute", bottom: 8, left: 8, right: 8,
+              padding: "5px 10px", borderRadius: 10, textAlign: "center",
+              fontSize: 11, fontWeight: 800, backdropFilter: "blur(8px)",
+              background: focus.face_detected ? "rgba(127,176,105,0.25)" : "rgba(226,102,86,0.25)",
+              color: focus.face_detected ? C.green : C.red,
+              border: `1px solid ${focus.face_detected ? "rgba(127,176,105,0.35)" : "rgba(226,102,86,0.35)"}`,
+            }}>
+              {focus.face_detected ? "Face detected" : "No face detected"}
             </div>
           </div>
 
-          {/* Live diagnostics panel */}
-          <div className="relative z-10 w-full max-w-65 bg-black/30 rounded-xl border border-white/10 px-4 py-3 font-mono text-xs text-white/80 grid grid-cols-2 gap-x-4 gap-y-1.5">
-            <span className="text-white/40">EAR</span>
-            <span className={focus.ear > 0.22 ? "text-emerald-400" : "text-red-400"}>
-              {focus.ear.toFixed(3)}
-            </span>
-            <span className="text-white/40">MAR</span>
-            <span className={focus.mar < 0.48 ? "text-emerald-400" : "text-red-400"}>
-              {focus.mar.toFixed(3)}
-            </span>
-            <span className="text-white/40">Yaw</span>
-            <span className={Math.abs(focus.yaw ?? 0) < 25 ? "text-emerald-400" : "text-amber-400"}>
-              {(focus.yaw ?? 0).toFixed(1)}°
-            </span>
-            <span className="text-white/40">Pitch</span>
-            <span className={Math.abs(focus.pitch ?? 0) < 20 ? "text-emerald-400" : "text-amber-400"}>
-              {(focus.pitch ?? 0).toFixed(1)}°
-            </span>
-            <span className="text-white/40">Streak</span>
-            <span className="text-blue-300">{focus.streak_secs}s</span>
-            <span className="text-white/40">Multiplier</span>
-            <span className={focus.multiplier > 1 ? "text-amber-400 font-black" : "text-white/60"}>
-              {focus.multiplier}×
-            </span>
+          {/* Human-readable signal panel */}
+          <div style={{ width: "100%", maxWidth: 280, background: "rgba(0,0,0,0.28)", borderRadius: 16, border: `1px solid ${C.panelBorder}`, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12, zIndex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, color: "rgba(251,241,229,0.35)", marginBottom: -2 }}>Live signals</div>
+            <SignalRow label="Eyes"      value={eyeLabel}   status={eyeStatus}   hint="Blink rate & openness" />
+            <SignalRow label="Mouth"     value={mouthLabel} status={mouthStatus} hint="Yawn detection" />
+            <SignalRow label="Head turn" value={yawLabel}   status={yawStatus}   hint="Left / right rotation" />
+            <SignalRow label="Head nod"  value={pitchLabel} status={pitchStatus} hint="Up / down tilt" />
+            <div style={{ borderTop: `1px solid ${C.panelBorder}`, paddingTop: 10, display: "flex", gap: 16 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(251,241,229,0.35)", marginBottom: 2 }}>Focus streak</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: focus.streak_secs > 30 ? C.green : C.yellow }}>{focus.streak_secs}s</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(251,241,229,0.35)", marginBottom: 2 }}>Coin multiplier</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: focus.multiplier > 1 ? C.yellow : "rgba(251,241,229,0.5)" }}>{focus.multiplier}×</div>
+              </div>
+            </div>
           </div>
 
           {/* Focus score ring */}
-          <div className="relative z-10">
-            <svg width="120" height="120" className="-rotate-90">
-              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="10" />
-              <circle
-                cx="60" cy="60" r="50" fill="none"
-                stroke={ringColor} strokeWidth="10" strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 50}`}
-                strokeDashoffset={`${2 * Math.PI * 50 * (1 - score / 100)}`}
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <svg width="110" height="110" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="9" />
+              <circle cx="55" cy="55" r="46" fill="none"
+                stroke={ringColor} strokeWidth="9" strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 46}`}
+                strokeDashoffset={`${2 * Math.PI * 46 * (1 - score / 100)}`}
                 style={{ transition: "stroke-dashoffset 0.8s ease, stroke 0.5s" }}
               />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-3xl font-black ${scoreColor}`}>{Math.round(score)}</span>
-              <span className="text-primary-foreground/70 text-xs font-medium">focus</span>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+              <span style={{ fontSize: 28, fontWeight: 900, color: scoreColor }}>{Math.round(score)}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(251,241,229,0.45)" }}>focus</span>
             </div>
           </div>
 
           {/* Mascot */}
-          <div className="z-10 cursor-pointer select-none" onClick={handlePoke}>
-            <Blob
-              palette={activeChar.palette}
-              shape={activeChar.shape}
-              size={140}
+          <div style={{ zIndex: 1, cursor: "pointer", userSelect: "none" }} onClick={handlePoke}>
+            <Blob palette="cream" shape="wide" size={140}
               state={poked ? "poked" : getBlobState(score, focus.face_detected)}
-              eyeTarget={mousePos}
-              showGround
+              eyeTarget={mousePos} showGround
             />
           </div>
         </div>
 
-        {/* Right — timer + coins + distractors */}
-        <div className="flex flex-col items-center justify-center p-8 gap-8">
+        {/* ── Right — timer + stats ── */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, gap: 28 }}>
 
           {/* Timer */}
-          <div className="text-center">
-            <div className="text-7xl font-black tabular-nums tracking-tight mb-2">
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 80, fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: -3, lineHeight: 1, marginBottom: 8, color: C.ink }}>
               {fmt(remaining)}
             </div>
-            <p className="text-muted-foreground">
-              {durationMins ? `remaining of ${durationMins}min session` : "elapsed"}
+            <p style={{ fontSize: 14, fontWeight: 600, color: C.soft }}>
+              {durationMins ? `remaining · ${durationMins}min session` : "elapsed"}
             </p>
             {durationMins && (
-              <div className="mt-3 h-2 w-64 bg-border/40 rounded-full overflow-hidden mx-auto">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-1000"
-                  style={{ width: `${progress * 100}%` }}
-                />
+              <div style={{ marginTop: 14, height: 8, width: 260, background: C.border, borderRadius: 999, overflow: "hidden", margin: "14px auto 0" }}>
+                <div style={{ height: "100%", background: C.accent, borderRadius: 999, width: `${progress * 100}%`, transition: "width 1s linear" }} />
               </div>
             )}
           </div>
 
-          {/* Coin counter with multiplier badge */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2">
-              <CartoonCoin size={36} />
-              <span className="text-4xl font-black text-amber-500 tabular-nums">{focus.coinsEarned}</span>
+          {/* Coin counter */}
+          <div style={{ textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <CartoonCoin size={34} />
+              <span style={{ fontSize: 44, fontWeight: 900, color: C.yellow, fontVariantNumeric: "tabular-nums" }}>{focus.coinsEarned}</span>
               {focus.multiplier > 1 && (
-                <span className="text-sm font-black text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded-full px-2 py-0.5">
+                <span style={{ fontSize: 13, fontWeight: 900, color: C.yellow, background: C.yellowSoft, border: `1.5px solid ${C.yellow}`, borderRadius: 999, padding: "4px 10px" }}>
                   {focus.multiplier}×
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p style={{ fontSize: 12, fontWeight: 600, color: C.soft, marginTop: 4 }}>
               {focus.multiplier > 1
                 ? `${focus.multiplier}× multiplier — ${focus.streak_secs}s streak!`
-                : "1 coin per 5 s · build a streak for a multiplier"}
+                : "Stay focused to build your streak"}
             </p>
           </div>
 
-          {/* Coin progress gauge */}
-          <div className="w-full max-w-xs">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold">Next coin</span>
-                <span className="font-black text-amber-500 bg-amber-500/10 rounded-full px-1.5 py-0.5 text-[10px]">+1</span>
-              </div>
-              <span>{focus.nextCoinPct >= 0.99 ? "Earned!" : `${((1 - focus.nextCoinPct) * 5).toFixed(1)}s`}</span>
+          {/* Next coin progress */}
+          <div style={{ width: "100%", maxWidth: 280 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.soft }}>Next coin</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.soft }}>
+                {focus.nextCoinPct >= 0.99 ? "Earned!" : `${((1 - focus.nextCoinPct) * 5).toFixed(1)}s`}
+              </span>
             </div>
-            <div className="h-2.5 w-full bg-border/40 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-500 rounded-full transition-all duration-300"
-                style={{ width: `${focus.nextCoinPct * 100}%` }}
-              />
+            <div style={{ height: 8, background: C.border, borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ height: "100%", background: C.yellow, borderRadius: 999, width: `${focus.nextCoinPct * 100}%`, transition: "width 0.3s" }} />
             </div>
           </div>
 
-          {/* Score recovery gauge */}
+          {/* Score recovery */}
           {focus.focus_score < 100 && focus.secsToScoreRecovery > 0 && (
-            <div className="w-full max-w-xs">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold">Score recovers in</span>
-                  <span className="font-black text-emerald-500 bg-emerald-500/10 rounded-full px-1.5 py-0.5 text-[10px]">+1</span>
-                </div>
-                <span>{fmt(focus.secsToScoreRecovery)}</span>
+            <div style={{ width: "100%", maxWidth: 280 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: C.soft }}>Score recovering in</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{fmt(focus.secsToScoreRecovery)}</span>
               </div>
-              <div className="h-2.5 w-full bg-border/40 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${((T_WINDOW_S - focus.secsToScoreRecovery) / T_WINDOW_S) * 100}%` }}
-                />
+              <div style={{ height: 8, background: C.border, borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ height: "100%", background: C.green, borderRadius: 999, width: `${((T_WINDOW_S - focus.secsToScoreRecovery) / T_WINDOW_S) * 100}%`, transition: "width 1s linear" }} />
               </div>
             </div>
           )}
 
-          {/* Distractor counts */}
-          <div className="w-full max-w-xs">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Distractions
-            </h3>
+          {/* Distractors */}
+          <div style={{ width: "100%", maxWidth: 280 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.4, color: C.soft, marginBottom: 12 }}>
+              Distractions this session
+            </div>
             {topDistractors.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No distractions yet — great work!</p>
+              <div style={{ padding: "14px 18px", borderRadius: 16, background: C.greenSoft, border: `1.5px solid ${C.green}`, fontSize: 13, fontWeight: 700, color: C.green, textAlign: "center" }}>
+                No distractions yet — great work!
+              </div>
             ) : (
-              <div className="space-y-2">
-                {topDistractors.map(([type, count]) => (
-                  <div
-                    key={type}
-                    className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/40"
-                  >
-                    <span className="text-sm font-medium">{DISTRACTOR_LABELS[type] ?? type}</span>
-                    <span className="text-sm font-bold text-red-500">×{count}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {topDistractors.map(([type, count], i) => (
+                  <div key={type} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 14, background: C.card, border: `1.5px solid ${C.border}` }}>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 800 }}>{DISTRACTOR_LABELS[type] ?? type}</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: i === 0 ? C.red : C.soft, background: i === 0 ? C.redSoft : C.border, borderRadius: 999, padding: "2px 10px" }}>
+                      ×{count}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* End button */}
-          <Button
+          {/* End session button */}
+          <button
             onClick={handleEnd}
             disabled={ending}
-            variant="outline"
-            className="w-full max-w-xs h-12 text-base border-red-500/40 text-red-500 hover:bg-red-500/10"
+            style={{ width: "100%", maxWidth: 280, height: 48, borderRadius: 14, border: `1.5px solid ${C.red}`, background: "transparent", color: C.red, fontSize: 15, fontWeight: 900, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}
+            onMouseEnter={e => (e.currentTarget.style.background = C.redSoft)}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             {ending ? "Ending…" : "End Session"}
-          </Button>
+          </button>
         </div>
-
       </div>
     </div>
   );
