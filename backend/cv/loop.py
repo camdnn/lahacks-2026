@@ -11,17 +11,19 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from cv.eye import avg_ear, mouth_aspect_ratio, head_tilt_degrees, nose_vertical_ratio
+from cv.eye import avg_ear, mouth_aspect_ratio, head_tilt_degrees, nose_vertical_ratio, head_yaw_ratio
 from cv.eye import LEFT_EAR_INDICES, RIGHT_EAR_INDICES
 from cv.face import draw_eye_contour, draw_mouth_contour, draw_metrics_overlay, draw_event_badge
 from state import state
 
 # Thresholds
-EAR_THRESHOLD   = 0.12   # below = microsleep
+EAR_THRESHOLD   = 0.19   # below = microsleep (raised so partial closes count, not just fully shut)
 MAR_THRESHOLD   = 0.65   # above = yawn
-TILT_THRESHOLD  = 25.0   # degrees
-NOSE_THRESHOLD  = 0.60   # above = phone check (head tilted down)
-EAR_CONSEC_FRAMES = 4    # consecutive frames for microsleep
+TILT_THRESHOLD  = 8.0    # degrees — noticeable but not exaggerated shoulder-tilt
+NOSE_THRESHOLD  = 0.46   # above = phone check — strict, slight head-down triggers it
+YAW_THRESHOLD   = 0.12   # abs deviation from 0.5 — moderate turn catches gaze-away without needing full head rotation
+EAR_CONSEC_FRAMES = 3    # ~100ms at 30fps — catches quick closes without needing eyes fully shut
+YAW_CONSEC_FRAMES = 3    # ~100ms — catches a quick sideways glance
 
 BLINK_EAR_THRESHOLD = 0.22  # for counting blinks (higher than microsleep)
 
@@ -66,6 +68,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
     cap = None
 
     ear_consec = 0
+    yaw_consec = 0
     blink_consec = 0
     in_blink = False
     blink_count = 0
@@ -136,8 +139,8 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
             nose = 0.5
 
             # Dynamic thresholds — use calibrated baseline if available
-            nose_thresh = (state.nose_baseline + 0.12) if state.calibrated else NOSE_THRESHOLD
-            tilt_thresh = (abs(state.tilt_baseline) + 20.0) if state.calibrated else TILT_THRESHOLD
+            nose_thresh = (state.nose_baseline + 0.03) if state.calibrated else NOSE_THRESHOLD
+            tilt_thresh = (abs(state.tilt_baseline) + 5.0) if state.calibrated else TILT_THRESHOLD
 
             with _ws_lock:
                 has_clients = bool(_ws_clients)
@@ -149,6 +152,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                 mar = mouth_aspect_ratio(lm)
                 tilt = head_tilt_degrees(lm)
                 nose = nose_vertical_ratio(lm)
+                yaw = head_yaw_ratio(lm)
 
                 # Feed calibration if running
                 if state.is_calibrating:
@@ -189,7 +193,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                         state.increment("microsleep")
                     last_event = "microsleep"
                     event_display_until = now + 2.0
-                    microsleep_cooldown = now + 5.0
+                    microsleep_cooldown = now + 3.0
 
                 # ── Yawn ──
                 if mar > MAR_THRESHOLD and yawn_cooldown < now:
@@ -197,7 +201,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                         state.increment("yawn")
                     last_event = "yawn"
                     event_display_until = now + 2.0
-                    yawn_cooldown = now + 4.0
+                    yawn_cooldown = now + 2.5
 
                 # ── Head tilt ──
                 if abs(tilt - state.tilt_baseline) > tilt_thresh and tilt_cooldown < now:
@@ -205,7 +209,7 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                         state.increment("head_tilt")
                     last_event = "head_tilt"
                     event_display_until = now + 1.5
-                    tilt_cooldown = now + 3.0
+                    tilt_cooldown = now + 1.0
 
                 # ── Phone check ──
                 if nose > nose_thresh and phone_cooldown < now:
@@ -213,18 +217,32 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                         state.increment("phone_check")
                     last_event = "phone_check"
                     event_display_until = now + 2.0
-                    phone_cooldown = now + 5.0
+                    phone_cooldown = now + 2.0
+
+                # ── Looking sideways (yaw) ──
+                if abs(yaw - 0.5) > YAW_THRESHOLD:
+                    yaw_consec += 1
+                else:
+                    yaw_consec = 0
+                if yaw_consec >= YAW_CONSEC_FRAMES and eyes_off_cooldown < now:
+                    if state.is_active:
+                        state.increment("eyes_off_screen")
+                    last_event = "eyes_off_screen"
+                    event_display_until = now + 1.5
+                    eyes_off_cooldown = now + 1.5
+                    yaw_consec = 0
 
             else:
                 blink_rate = 0.0
                 ear_consec = 0
+                yaw_consec = 0
 
                 if eyes_off_cooldown < now:
                     if state.is_active:
                         state.increment("eyes_off_screen")
                     last_event = "eyes_off_screen"
                     event_display_until = now + 1.5
-                    eyes_off_cooldown = now + 5.0
+                    eyes_off_cooldown = now + 1.5
 
             # Accumulate focus time when face is visible
             if face_detected and state.is_active:

@@ -65,6 +65,20 @@ def nose_vertical_ratio(landmarks) -> float:
     return (nose.y - brow.y) / face_h
 
 
+def head_yaw_ratio(landmarks) -> float:
+    """
+    Horizontal nose position within the face width (left cheek → right cheek).
+    0.5 = facing forward.  < 0.28 or > 0.72 = looking notably sideways.
+    """
+    nose       = landmarks[1]
+    left_edge  = landmarks[234]
+    right_edge = landmarks[454]
+    face_w = abs(right_edge.x - left_edge.x)
+    if face_w < 1e-6:
+        return 0.5
+    return (nose.x - left_edge.x) / face_w
+
+
 def avg_ear(landmarks) -> float:
     left  = eye_aspect_ratio(landmarks, LEFT_EAR_INDICES)
     right = eye_aspect_ratio(landmarks, RIGHT_EAR_INDICES)
