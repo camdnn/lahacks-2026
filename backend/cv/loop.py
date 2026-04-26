@@ -139,6 +139,9 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
             nose_thresh = (state.nose_baseline + 0.12) if state.calibrated else NOSE_THRESHOLD
             tilt_thresh = (abs(state.tilt_baseline) + 20.0) if state.calibrated else TILT_THRESHOLD
 
+            with _ws_lock:
+                has_clients = bool(_ws_clients)
+
             if face_detected:
                 lm = results.multi_face_landmarks[0].landmark
 
@@ -151,10 +154,11 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                 if state.is_calibrating:
                     state.add_calibration_frame(nose, tilt)
 
-                # Draw contours
-                draw_eye_contour(frame, lm, LEFT_EAR_INDICES, h, w)
-                draw_eye_contour(frame, lm, RIGHT_EAR_INDICES, h, w)
-                draw_mouth_contour(frame, lm, h, w)
+                # Draw contours only when a CV-test client is watching
+                if has_clients:
+                    draw_eye_contour(frame, lm, LEFT_EAR_INDICES, h, w)
+                    draw_eye_contour(frame, lm, RIGHT_EAR_INDICES, h, w)
+                    draw_mouth_contour(frame, lm, h, w)
 
                 # ── Blink counting ──
                 if ear < BLINK_EAR_THRESHOLD:
@@ -236,16 +240,13 @@ def run_cv_loop(event_loop: asyncio.AbstractEventLoop):
                 blink_rate=blink_rate if face_detected else 0.0,
             )
 
-            metrics = state.snapshot()
-
-            # ── Draw overlays ──
-            draw_metrics_overlay(frame, {**metrics, "blink_rate": blink_rate if face_detected else 0.0})
-
-            if last_event and now < event_display_until:
-                draw_event_badge(frame, last_event)
-
-            # Broadcast to WebSocket clients
-            _broadcast_frame(event_loop, frame, metrics)
+            # Skip all expensive draw + encode work when nobody is watching
+            if has_clients:
+                metrics = state.snapshot()
+                draw_metrics_overlay(frame, {**metrics, "blink_rate": blink_rate if face_detected else 0.0})
+                if last_event and now < event_display_until:
+                    draw_event_badge(frame, last_event)
+                _broadcast_frame(event_loop, frame, metrics)
 
             # Snapshot to DB every 10s (if session active) — handled by routers
             # using state.snapshot(); no direct DB call here to keep loop clean.

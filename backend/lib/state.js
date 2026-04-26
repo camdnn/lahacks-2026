@@ -1,7 +1,7 @@
-// In-memory session state — single instance shared across all routes.
+// In-memory session state — one SessionState per active session_id.
 // Updated by:
-//   • Browser MediaPipe  →  POST /state/push  { face_detected, focus_score }
-//   • Python CV bridge   →  POST /cv/push     { ear, mar, head_tilt, … }
+//   • Browser MediaPipe  →  POST /state/push  { session_id, face_detected, focus_score }
+//   • Python CV bridge   →  POST /cv/push     { session_id, ear, mar, head_tilt, … }
 //   • Event logging      →  POST /events      (recordEvent increments counts)
 
 export const WEIGHTS = {
@@ -32,17 +32,14 @@ class SessionState {
     this.counts       = Object.fromEntries(Object.keys(WEIGHTS).map(k => [k, 0]));
     this.focusScore   = 100;
     this.focusSeconds = 0;
-    // Raw CV metrics (populated by Python bridge)
     this.ear          = 0.3;
     this.mar          = 0.1;
     this.headTilt     = 0;
     this.noseRatio    = 0.3;
     this.faceDetected = false;
     this.blinkRate    = 0;
-    // Session config
     this.sessionType  = 'general';
     this.allowedTabs  = [];
-    // Internal timing for focus-seconds accumulation
     this._lastPushMs  = null;
   }
 
@@ -58,7 +55,6 @@ class SessionState {
 
   stop() { this.isActive = false; }
 
-  // Called by POST /events — increments count and lowers score
   recordEvent(type) {
     if (type in this.counts) this.counts[type]++;
     this._recalculate();
@@ -79,12 +75,10 @@ class SessionState {
       .slice(0, n);
   }
 
-  // Called by POST /state/push (browser MediaPipe every 2 s)
-  // Accumulates focus_seconds while face is detected and session is active
   pushBrowserFocus(faceDetected, focusScore) {
     const now = Date.now();
     if (this.isActive && this._lastPushMs !== null) {
-      const dt = Math.min((now - this._lastPushMs) / 1000, 5); // cap at 5 s gap
+      const dt = Math.min((now - this._lastPushMs) / 1000, 5);
       if (faceDetected) this.focusSeconds += dt;
     }
     this._lastPushMs  = now;
@@ -92,14 +86,13 @@ class SessionState {
     this.focusScore   = Math.max(0, Math.min(100, Number(focusScore)));
   }
 
-  // Called by POST /cv/push (Python bridge every ~1 s)
   updateCV({ ear, mar, head_tilt, nose_ratio, face_detected, blink_rate } = {}) {
-    if (ear          !== undefined) this.ear          = Number(ear);
-    if (mar          !== undefined) this.mar          = Number(mar);
-    if (head_tilt    !== undefined) this.headTilt     = Number(head_tilt);
-    if (nose_ratio   !== undefined) this.noseRatio    = Number(nose_ratio);
+    if (ear           !== undefined) this.ear          = Number(ear);
+    if (mar           !== undefined) this.mar          = Number(mar);
+    if (head_tilt     !== undefined) this.headTilt     = Number(head_tilt);
+    if (nose_ratio    !== undefined) this.noseRatio    = Number(nose_ratio);
     if (face_detected !== undefined) this.faceDetected = Boolean(face_detected);
-    if (blink_rate   !== undefined) this.blinkRate    = Number(blink_rate);
+    if (blink_rate    !== undefined) this.blinkRate    = Number(blink_rate);
   }
 
   snapshot() {
@@ -120,4 +113,27 @@ class SessionState {
   }
 }
 
-export const state = new SessionState();
+// Map<sessionId, SessionState> — one entry per active session
+const _states = new Map();
+
+export function createState(sessionId, opts) {
+  const s = new SessionState();
+  s.start(sessionId, opts);
+  _states.set(sessionId, s);
+  return s;
+}
+
+export function getState(sessionId) {
+  return _states.get(sessionId) ?? null;
+}
+
+export function removeState(sessionId) {
+  _states.delete(sessionId);
+}
+
+// Legacy single-instance export kept for routes that haven't been updated yet
+export const state = {
+  start:   (id, opts) => createState(id, opts),
+  stop:    (id)       => getState(id)?.stop(),
+  snapshot:(id)       => getState(id)?.snapshot() ?? new SessionState().snapshot(),
+};

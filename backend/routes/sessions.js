@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { requireAuth }    from '../middleware/auth.js';
-import { supabase }       from '../lib/supabase.js';
-import { state, WEIGHTS, TIPS } from '../lib/state.js';
+import { requireAuth }             from '../middleware/auth.js';
+import { supabase }                from '../lib/supabase.js';
+import { createState, getState, removeState, WEIGHTS, TIPS } from '../lib/state.js';
 
 const router = Router();
 
@@ -14,7 +14,6 @@ router.post('/start', requireAuth, async (req, res) => {
       allowed_tabs       = [],
     } = req.body;
 
-    // Ensure profile row exists — handles users whose profile was lost after a DB teardown
     await supabase.from('profiles').upsert(
       { id: req.user.id, email: req.user.email },
       { onConflict: 'id', ignoreDuplicates: true }
@@ -33,7 +32,7 @@ router.post('/start', requireAuth, async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
 
-    state.start(data.session_id, { session_type, allowed_tabs });
+    createState(data.session_id, { session_type, allowed_tabs });
 
     res.json({ session_id: data.session_id, started_at: data.started_at });
   } catch (err) {
@@ -46,7 +45,6 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
   try {
     const { session_id } = req.params;
 
-    // Verify the session belongs to this user
     const { data: session, error: fetchErr } = await supabase
       .from('sessions')
       .select('*')
@@ -62,13 +60,15 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       return res.status(409).json({ error: 'Session already ended' });
     }
 
-    const snap = state.snapshot();
-    state.stop();
+    const s = getState(session_id);
+    const snap = s ? s.snapshot() : { focus_score: 0, focus_seconds: 0, top_distractors: [], counts: {} };
+    s?.stop();
+    removeState(session_id);
 
-    const now         = new Date();
-    const started     = new Date(session.started_at);
+    const now          = new Date();
+    const started      = new Date(session.started_at);
     const duration_mins = Math.max(1, Math.round((now - started) / 60_000));
-    const coins       = Math.floor(snap.focus_seconds / 5);
+    const coins        = Math.floor((snap.focus_seconds ?? 0) / 5);
 
     const top_d = Array.isArray(snap.top_distractors) ? snap.top_distractors : [];
     const top_distractors = top_d.map(([type, count]) => ({
@@ -80,7 +80,6 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       top_d.slice(0, 5).map(([k]) => [k, TIPS[k] ?? ''])
     );
 
-    // Persist session summary
     await supabase
       .from('sessions')
       .update({
@@ -93,7 +92,6 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       })
       .eq('session_id', session_id);
 
-    // Update coin balance in profiles
     const { data: profile } = await supabase
       .from('profiles')
       .select('coin_balance')
@@ -106,7 +104,6 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       .update({ coin_balance })
       .eq('id', req.user.id);
 
-    // Update streak
     const today = now.toISOString().split('T')[0];
     const { data: streak } = await supabase
       .from('streaks')
@@ -157,7 +154,7 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
   }
 });
 
-// POST /sessions/:session_id/snapshot  (requires auth)
+// POST /sessions/:session_id/snapshot
 router.post('/:session_id/snapshot', requireAuth, async (req, res) => {
   try {
     const { session_id } = req.params;
