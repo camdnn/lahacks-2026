@@ -10,6 +10,9 @@ import SessionSummary from "./pages/SessionSummary";
 import CVTest from "./pages/CVTest";
 import AuthCallback from "./pages/AuthCallback";
 import Homepage from "./homepage";
+import FAQ from "./pages/FAQ";
+import Info from "./pages/Info";
+import Store from "./pages/Store";
 import "./App.css";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -33,6 +36,9 @@ export default function App() {
         <Route path="/session" element={<RequireAuth><ActiveSession /></RequireAuth>} />
         <Route path="/summary" element={<RequireAuth><SessionSummary /></RequireAuth>} />
         <Route path="/cv-test" element={<RequireAuth><CVTest /></RequireAuth>} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/about" element={<Info />} />
+        <Route path="/store" element={<RequireAuth><Store /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

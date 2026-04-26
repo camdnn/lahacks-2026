@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, ShoppingBag, HelpCircle, Info } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -68,6 +68,15 @@ export default function HomeDashboard() {
               </div>
               <hr className="border-border mb-2" />
               <button
+                onClick={() => { setProfileOpen(false); navigate("/store"); }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer mb-1"
+                onMouseEnter={e => (e.currentTarget.style.background = "#FFF3D6")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <ShoppingBag className="size-4" style={{ color: "#F08F60" }} />
+                Character Shop
+              </button>
+              <button
                 onClick={() => { logout(); setProfileOpen(false); }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
                 style={{ color: "#E26656" }}
@@ -100,7 +109,7 @@ export default function HomeDashboard() {
         </div>
 
         {/* Action cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-2xl">
           <button
             onClick={() => navigate("/start")}
             className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
@@ -112,6 +121,17 @@ export default function HomeDashboard() {
             <p className="text-sm text-muted-foreground font-semibold">General or specialized focus mode</p>
           </button>
 
+          <button
+            onClick={() => navigate("/store")}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
+          >
+            <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#FFF3D6" }}>
+              <ShoppingBag className="size-6" style={{ color: "#C97A3F" }} />
+            </div>
+            <h3 className="font-black text-lg mb-1">Character Shop</h3>
+            <p className="text-sm text-muted-foreground font-semibold">Spend coins on new blobs</p>
+          </button>
+
           <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left opacity-40 cursor-not-allowed select-none">
             <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#D9F0D3" }}>
               <BarChart2 className="size-6" style={{ color: "#7FB069" }} />
@@ -121,30 +141,30 @@ export default function HomeDashboard() {
           </div>
         </div>
 
-        {/* Download overlay */}
-        <a
-          href={`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/download/overlay`}
-          download="Pudge.dmg"
-          className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
-        >
-          <div className="size-12 shrink-0 rounded-xl bg-orange-500/10 flex items-center justify-center">
-            <Download className="size-6 text-orange-500 group-hover:translate-y-0.5 transition-transform" />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="font-bold text-base">Download Pudge Overlay</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Desktop app — Pudge floats above every window
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground border border-border/60 rounded-full px-2.5 py-1 shrink-0">
-            .dmg
-          </span>
-        </a>
-
-        {/* Streak */}
+{/* Streak */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
           <Flame className="size-4" style={{ color: "#F08F60" }} />
           <span>Keep your streak alive — start a session today!</span>
+        </div>
+
+        {/* Secondary links */}
+        <div className="flex items-center gap-6 text-xs font-bold text-muted-foreground">
+          <button
+            onClick={() => navigate("/faq")}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer bg-transparent border-none font-bold text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
+            <HelpCircle className="size-3.5" />
+            FAQ
+          </button>
+          <button
+            onClick={() => navigate("/about")}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer bg-transparent border-none font-bold text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
+            <Info className="size-3.5" />
+            About Bloom
+          </button>
         </div>
       </main>
     </div>
