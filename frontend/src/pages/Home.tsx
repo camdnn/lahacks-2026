@@ -82,74 +82,62 @@ export default function HomeDashboard() {
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center gap-12 px-8 py-12">
-        {/* Welcome */}
-        <div className="text-center">
-          <h1 className="text-4xl font-black tracking-tight mb-2">
-            Hey{profile?.username ? `, ${profile.username}` : profile?.email ? `, ${profile.email.split("@")[0]}` : ""}!
-          </h1>
-          <p className="text-muted-foreground text-lg font-semibold">Ready to crush your focus session?</p>
-        </div>
-
-        {/* Mascot trio */}
-        <div className="flex items-end gap-6">
-          <Blob palette="peach" shape="classic" size={90} state="idle" showGround />
-          <Blob palette="cream" shape="wide" size={180} state="encouraging" showGround />
-          <Blob palette="honey" shape="baby" size={75} state="idle" showGround />
-        </div>
-
-        {/* Action cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-lg">
-          <button
-            onClick={() => navigate("/start")}
-            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer"
-          >
-            <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <Play className="size-6 text-primary" />
+      {/* Full-height action cards */}
+      <main className="flex-1 grid sm:grid-cols-2">
+        {/* Start Session */}
+        <button
+          onClick={() => navigate("/start")}
+          className="group relative overflow-hidden flex flex-col items-center justify-center p-16 gap-10 text-center cursor-pointer border-r border-border bg-card hover:bg-primary/5 transition-all duration-200"
+        >
+          <div className="flex items-end gap-4 pointer-events-none">
+            <Blob palette="peach" shape="classic" size={80} state="idle" showGround />
+            <Blob palette="cream" shape="wide" size={170} state="encouraging" showGround />
+            <Blob palette="honey" shape="baby" size={70} state="idle" showGround />
+          </div>
+          <div>
+            <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto group-hover:scale-105 transition-transform">
+              <Play className="size-8 text-primary" />
             </div>
-            <h3 className="font-black text-lg mb-1">Start Session</h3>
-            <p className="text-sm text-muted-foreground font-semibold">General or specialized focus mode</p>
-          </button>
+            <h3 className="font-black text-4xl mb-2">Start Session</h3>
+            <p className="text-muted-foreground font-semibold text-base">General or specialized focus mode</p>
+          </div>
+        </button>
 
-          <button
-            onClick={() => navigate("/my-analytics")}
-            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-left hover:border-green hover:shadow-lg transition-all cursor-pointer"
-          >
-            <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#D9F0D3" }}>
-              <BarChart2 className="size-6" style={{ color: "#7FB069" }} />
+        {/* View Analytics */}
+        <button
+          onClick={() => navigate("/my-analytics")}
+          className="group relative overflow-hidden flex flex-col items-center justify-center p-16 gap-10 text-center cursor-pointer bg-background hover:bg-green/5 transition-all duration-200"
+        >
+          <div className="pointer-events-none">
+            <Blob palette="honey" shape="classic" size={200} state="idle" showGround />
+          </div>
+          <div>
+            <div className="size-16 rounded-2xl flex items-center justify-center mb-4 mx-auto group-hover:scale-105 transition-transform" style={{ background: "#D9F0D3" }}>
+              <BarChart2 className="size-8" style={{ color: "#7FB069" }} />
             </div>
-            <h3 className="font-black text-lg mb-1">View Analytics</h3>
-            <p className="text-sm text-muted-foreground font-semibold">Your focus insights</p>
-          </button>
-        </div>
+            <h3 className="font-black text-4xl mb-2">View Analytics</h3>
+            <p className="text-muted-foreground font-semibold text-base">Your focus insights</p>
+          </div>
+        </button>
+      </main>
 
-        {/* Download overlay */}
+      {/* Bottom bar */}
+      <div className="shrink-0 border-t border-border bg-card px-8 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
+          <Flame className="size-4" style={{ color: "#F08F60" }} />
+          <span>
+            Hey{profile?.username ? `, ${profile.username}` : profile?.email ? `, ${profile.email.split("@")[0]}` : ""}! Keep your streak alive — start a session today!
+          </span>
+        </div>
         <a
           href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
           download="Pudge.dmg"
-          className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
+          className="shrink-0 flex items-center gap-2 px-4 py-2 border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
         >
-          <div className="size-12 shrink-0 rounded-xl bg-orange-500/10 flex items-center justify-center">
-            <Download className="size-6 text-orange-500 group-hover:translate-y-0.5 transition-transform" />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="font-bold text-base">Download Pudge Overlay</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Desktop app — Pudge floats above every window
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground border border-border/60 rounded-full px-2.5 py-1 shrink-0">
-            .dmg
-          </span>
+          <Download className="size-3" />
+          Get Pudge for desktop
         </a>
-
-        {/* Streak */}
-        <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
-          <Flame className="size-4" style={{ color: "#F08F60" }} />
-          <span>Keep your streak alive — start a session today!</span>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

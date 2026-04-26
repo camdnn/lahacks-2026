@@ -207,7 +207,7 @@ export default function StartFocus() {
   // ── Config form ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-2xl">
         <button
           onClick={() => navigate("/home")}
           className="flex cursor-pointer items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors font-bold text-sm"

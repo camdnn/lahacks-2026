@@ -165,13 +165,14 @@ export default function ActiveSession() {
   const handleEnd = async () => {
     if (ending) return;
     setEnding(true);
+    const timelines = focus.getTimelines();
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), 12_000)
       );
       const summary = await Promise.race([end(), timeoutPromise]);
       goingToSummary.current = true;
-      navigate("/summary", { state: { summary } });
+      navigate("/summary", { state: { summary: { ...summary, focus_timeline: timelines.focus, event_timeline: timelines.events } } });
     } catch (err) {
       console.error('[handleEnd] falling back to local summary:', err);
       const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
@@ -186,6 +187,8 @@ export default function ActiveSession() {
         })),
         improvement_tips: {},
         event_counts: focus.counts,
+        focus_timeline: timelines.focus,
+        event_timeline: timelines.events,
       };
       goingToSummary.current = true;
       navigate("/summary", { state: { summary: localSummary } });
@@ -303,7 +306,7 @@ export default function ActiveSession() {
       <div className="flex-1 grid lg:grid-cols-2">
 
         {/* Left — camera + mascot panel */}
-        <div className="hidden lg:flex flex-col items-center justify-center bg-linear-to-br from-primary/90 via-primary to-primary/80 p-10 relative overflow-hidden gap-5">
+        <div className="hidden lg:flex flex-col items-center justify-center p-10 relative overflow-hidden gap-5" style={{ background: "linear-gradient(135deg, #1A0B04 0%, #2D1609 100%)" }}>
           <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
 
           {/* Camera preview with landmark canvas overlay */}
