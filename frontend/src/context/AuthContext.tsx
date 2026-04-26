@@ -18,6 +18,8 @@ interface Profile {
   email: string | null;
   username: string | null;
   coin_balance: number;
+  owned_characters: string[];
+  active_character: string;
 }
 
 interface AuthCtx {
@@ -30,6 +32,8 @@ interface AuthCtx {
   loginWithGitHub: () => Promise<void>;
   logout: () => Promise<void>;
   updateCoins: (balance: number) => void;
+  purchaseCharacter: (key: string, cost: number) => Promise<boolean>;
+  setActiveCharacter: (key: string) => void;
 }
 
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -37,11 +41,16 @@ const AuthContext = createContext<AuthCtx | null>(null);
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, username, coin_balance")
+    .select("id, email, username, coin_balance, owned_characters, active_character")
     .eq("id", userId)
     .single();
   if (error || !data) return null;
-  return data as Profile;
+  const raw = data as Record<string, unknown>;
+  return {
+    ...raw,
+    owned_characters: Array.isArray(raw.owned_characters) ? raw.owned_characters as string[] : ["peach_classic"],
+    active_character: typeof raw.active_character === "string" ? raw.active_character : "peach_classic",
+  } as Profile;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -141,6 +150,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session]);
 
+  const purchaseCharacter = useCallback(async (key: string, cost: number): Promise<boolean> => {
+    if (!session || !profile) return false;
+    if (profile.coin_balance < cost) return false;
+    if (profile.owned_characters.includes(key)) return false;
+    const newBalance = profile.coin_balance - cost;
+    const newOwned = [...profile.owned_characters, key];
+    setProfile((p) => p ? { ...p, coin_balance: newBalance, owned_characters: newOwned } : p);
+    await supabase
+      .from("profiles")
+      .update({ coin_balance: newBalance, owned_characters: newOwned })
+      .eq("id", session.user.id);
+    return true;
+  }, [session, profile]);
+
+  const setActiveCharacter = useCallback((key: string) => {
+    setProfile((p) => p ? { ...p, active_character: key } : p);
+    if (session) {
+      supabase
+        .from("profiles")
+        .update({ active_character: key })
+        .eq("id", session.user.id)
+        .then(() => {});
+    }
+  }, [session]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -153,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGitHub,
         logout,
         updateCoins,
+        purchaseCharacter,
+        setActiveCharacter,
       }}
     >
       {children}

@@ -109,22 +109,22 @@ const WEIGHTS: Record<string, number> = {
 };
 
 const T = {
-  EAR_RATIO:     0.68,
-  EAR_SECS:      2.5,
-  MAR_YAWN:      0.48,
-  MAR_SECS:      1.0,
+  EAR_RATIO:     0.60,   // 60% of baseline — eyes need to close more before triggering
+  EAR_SECS:      3.5,
+  MAR_YAWN:      0.55,
+  MAR_SECS:      2.0,
   YAWN_COOLDOWN: 5.0,
-  TILT_DEG:      22,
-  TILT_SECS:     2.0,
-  PHONE_DELTA:   0.10,
-  PHONE_SECS:    1.5,
-  NO_FACE_SECS:  2.0,
+  TILT_DEG:      28,
+  TILT_SECS:     3.0,
+  PHONE_DELTA:   0.13,
+  PHONE_SECS:    2.5,
+  NO_FACE_SECS:  3.5,
   WINDOW_MS:     5 * 60 * 1000,
-  YAW_DEG:       25,
-  YAW_SECS:      2.0,
-  PITCH_DOWN:    20,
-  GAZE_X:        0.15,
-  GAZE_SECS:     2.0,
+  YAW_DEG:       30,
+  YAW_SECS:      3.0,
+  PITCH_DOWN:    25,
+  GAZE_X:        0.22,
+  GAZE_SECS:     3.0,
 };
 
 // MediaPipe landmark indices
@@ -378,7 +378,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         }
 
         const tiltThresh  = Math.abs(cal.current.tiltBaseline) + T.TILT_DEG;
-        const phoneThresh = cal.current.noseBaseline - T.PHONE_DELTA;
+        const phoneThresh = cal.current.noseBaseline + T.PHONE_DELTA;
         const earThresh   = cal.current.earThreshold;
 
         // ── Sustained-event detection ──────────────────────────────────────
@@ -402,8 +402,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           if (sus.current.headTilt >= T.TILT_SECS) { recordEvent("head_tilt"); sus.current.headTilt = 0; }
         } else { sus.current.headTilt = 0; }
 
-        // Phone check: nose drops below baseline OR pitch > 20° (composite)
-        if (!dis.has("phone_check") && (noseRel < phoneThresh || pitch > T.PITCH_DOWN)) {
+        // Phone check: nose ratio rises above baseline (head tilts down) OR pitch > threshold
+        if (!dis.has("phone_check") && (noseRel > phoneThresh || pitch > T.PITCH_DOWN)) {
           sus.current.phone += dt;
           if (sus.current.phone >= T.PHONE_SECS) { recordEvent("phone_check"); sus.current.phone = 0; }
         } else { sus.current.phone = 0; }

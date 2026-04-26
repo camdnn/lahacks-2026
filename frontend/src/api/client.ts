@@ -15,6 +15,23 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// On 401, refresh the Supabase session and retry once.
+// This handles expired access tokens during long focus sessions.
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && !error.config._retried) {
+      error.config._retried = true;
+      const { data, error: refreshErr } = await supabase.auth.refreshSession();
+      if (!refreshErr && data.session?.access_token) {
+        error.config.headers.Authorization = `Bearer ${data.session.access_token}`;
+        return api.request(error.config);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const startSession = (data: {
   session_type?: string;
   focus_duration_mins?: number;
