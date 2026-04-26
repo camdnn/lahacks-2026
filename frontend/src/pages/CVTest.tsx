@@ -63,15 +63,15 @@ const calcEar = (lm: P[], idx: number[]) => {
 
 // ── default thresholds ────────────────────────────────────────────────────────
 const DEFAULT_T = {
-  earClose:   0.20,
-  earSecs:    1.5,
-  marYawn:    0.48,
-  marSecs:    1.0,
-  tiltDeg:    22,
-  tiltSecs:   2.0,
-  phoneDelta: 0.10,
-  phoneSecs:  1.5,
-  noFaceSecs: 2.0,
+  earClose:   0.17,
+  earSecs:    3.5,
+  marYawn:    0.55,
+  marSecs:    2.0,
+  tiltDeg:    28,
+  tiltSecs:   3.0,
+  phoneDelta: 0.13,
+  phoneSecs:  2.5,
+  noFaceSecs: 3.5,
 };
 
 const ZERO_COUNTS = () => ({
@@ -292,7 +292,7 @@ export default function CVTest() {
           setMetrics({ ear: avgEar, mar, tiltDeg, noseRatio, faceDetected: true });
 
           const tiltThresh  = Math.abs(cal.current.tiltBl) + T.tiltDeg;
-          const phoneThresh = cal.current.noseBl - T.phoneDelta;
+          const phoneThresh = cal.current.noseBl + T.phoneDelta;
 
           if (avgEar < T.earClose) {
             sus.current.eyes += dt;
@@ -309,7 +309,7 @@ export default function CVTest() {
             if (sus.current.tilt >= T.tiltSecs) { addEvent("head_tilt"); sus.current.tilt = 0; }
           } else { sus.current.tilt = 0; }
 
-          if (noseRatio < phoneThresh) {
+          if (noseRatio > phoneThresh) {
             sus.current.phone += dt;
             if (sus.current.phone >= T.phoneSecs) { addEvent("phone_check"); sus.current.phone = 0; }
           } else { sus.current.phone = 0; }
@@ -342,11 +342,11 @@ export default function CVTest() {
   const T = thresholds;
   const { ear, mar, tiltDeg, noseRatio, faceDetected } = metrics;
   const tiltThresh  = Math.abs(cal.current.tiltBl) + T.tiltDeg;
-  const phoneThresh = cal.current.noseBl - T.phoneDelta;
+  const phoneThresh = cal.current.noseBl + T.phoneDelta;
   const earAlert    = ear < T.earClose;
   const marAlert    = mar > T.marYawn;
   const tiltAlert   = Math.abs(tiltDeg - cal.current.tiltBl) > tiltThresh;
-  const phoneAlert  = noseRatio < phoneThresh;
+  const phoneAlert  = noseRatio > phoneThresh;
 
   const EVENT_LABELS: Record<string, string> = {
     microsleep:      "😴 Microsleep",
@@ -472,7 +472,7 @@ export default function CVTest() {
 
               <MetricBar
                 label={`Nose Ratio (phone check, thresh ${phoneThresh.toFixed(2)})`}
-                value={noseRatio} min={0.2} max={0.8} threshold={phoneThresh}
+                value={noseRatio} min={0.2} max={0.8} threshold={phoneThresh} threshHigh
               />
             </div>
 

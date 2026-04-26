@@ -136,35 +136,36 @@ export default function HomeDashboard() {
             <div className="size-12 rounded-xl flex items-center justify-center mb-4" style={{ background: "#D9F0D3" }}>
               <BarChart2 className="size-6" style={{ color: "#7FB069" }} />
             </div>
-            <h3 className="font-black text-lg mb-1">View Analytics</h3>
-            <p className="text-sm text-muted-foreground font-semibold">Coming soon</p>
+            <h3 className="font-black text-4xl mb-2">Start Session</h3>
+            <p className="text-muted-foreground font-semibold text-base">General or specialized focus mode</p>
           </div>
-        </div>
+        </button>
 
-        {/* Download overlay */}
-        <a
-          href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
-          download="Pudge.dmg"
-          className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
+        {/* View Analytics */}
+        <button
+          onClick={() => navigate("/my-analytics")}
+          className="group relative overflow-hidden flex flex-col items-center justify-center p-16 gap-10 text-center cursor-pointer bg-background hover:bg-green/5 transition-all duration-200"
         >
-          <div className="size-12 shrink-0 rounded-xl bg-orange-500/10 flex items-center justify-center">
-            <Download className="size-6 text-orange-500 group-hover:translate-y-0.5 transition-transform" />
+          <div className="pointer-events-none">
+            <Blob palette="honey" shape="classic" size={200} state="idle" showGround />
           </div>
-          <div className="flex-1 text-left">
-            <div className="font-bold text-base">Download Pudge Overlay</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Desktop app — Pudge floats above every window
+          <div>
+            <div className="size-16 rounded-2xl flex items-center justify-center mb-4 mx-auto group-hover:scale-105 transition-transform" style={{ background: "#D9F0D3" }}>
+              <BarChart2 className="size-8" style={{ color: "#7FB069" }} />
             </div>
+            <h3 className="font-black text-4xl mb-2">View Analytics</h3>
+            <p className="text-muted-foreground font-semibold text-base">Your focus insights</p>
           </div>
-          <span className="text-xs text-muted-foreground border border-border/60 rounded-full px-2.5 py-1 shrink-0">
-            .dmg
-          </span>
-        </a>
+        </button>
+      </main>
 
-        {/* Streak */}
+      {/* Bottom bar */}
+      <div className="shrink-0 border-t border-border bg-card px-8 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">
           <Flame className="size-4" style={{ color: "#F08F60" }} />
-          <span>Keep your streak alive — start a session today!</span>
+          <span>
+            Hey{profile?.username ? `, ${profile.username}` : profile?.email ? `, ${profile.email.split("@")[0]}` : ""}! Keep your streak alive — start a session today!
+          </span>
         </div>
 
         {/* Secondary links */}

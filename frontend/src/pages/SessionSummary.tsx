@@ -35,6 +35,72 @@ interface SummaryData {
   top_distractors: { type: string; count: number; impact: number }[];
   improvement_tips: Record<string, string>;
   event_counts: Record<string, number>;
+  focus_timeline?: { elapsed: number; score: number }[];
+  event_timeline?: { elapsed: number; type: string }[];
+}
+
+function FocusLineChart({ timeline, events, durationMins }: {
+  timeline: { elapsed: number; score: number }[];
+  events: { elapsed: number; type: string }[];
+  durationMins: number;
+}) {
+  if (timeline.length < 2) return null;
+  const W = 500, H = 130;
+  const PAD = { top: 10, right: 12, bottom: 24, left: 30 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+  const maxX = Math.max(durationMins * 60, timeline[timeline.length - 1].elapsed);
+  const xS = (s: number) => PAD.left + (s / maxX) * cW;
+  const yS = (v: number) => PAD.top + (1 - v / 100) * cH;
+  const pts = timeline.map(p => `${xS(p.elapsed)},${yS(p.score)}`).join(" ");
+  const fill = `${xS(timeline[0].elapsed)},${yS(0)} ${pts} ${xS(timeline[timeline.length - 1].elapsed)},${yS(0)}`;
+  const xTicks: { x: number; label: string }[] = [];
+  const step = durationMins <= 30 ? 5 : durationMins <= 60 ? 10 : 15;
+  for (let m = 0; m <= durationMins; m += step) {
+    if (m === durationMins) break; // will add end label separately
+    xTicks.push({ x: xS(m * 60), label: `${m}m` });
+  }
+  xTicks.push({ x: xS(durationMins * 60), label: `${durationMins}m` });
+  const yTicks = [25, 50, 75, 100];
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#F08F60" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#F08F60" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {yTicks.map(v => (
+        <line key={v} x1={PAD.left} y1={yS(v)} x2={W - PAD.right} y2={yS(v)}
+          stroke="#e5d8c8" strokeWidth={1} strokeDasharray="4 3" />
+      ))}
+      {yTicks.filter(v => v % 50 === 0).map(v => (
+        <text key={v} x={PAD.left - 4} y={yS(v) + 3.5} textAnchor="end" fontSize={9} fill="#9a7c65">{v}</text>
+      ))}
+      <polygon points={fill} fill="url(#sg)" />
+      <polyline points={pts} fill="none" stroke="#F08F60" strokeWidth={2}
+        strokeLinejoin="round" strokeLinecap="round" />
+      {events.map((ev, i) => {
+        const closest = timeline.reduce((a, b) =>
+          Math.abs(b.elapsed - ev.elapsed) < Math.abs(a.elapsed - ev.elapsed) ? b : a);
+        return (
+          <g key={i}>
+            <line x1={xS(ev.elapsed)} y1={PAD.top} x2={xS(ev.elapsed)} y2={H - PAD.bottom}
+              stroke="#E26656" strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
+            <circle cx={xS(ev.elapsed)} cy={yS(closest.score)} r={3.5} fill="#E26656" />
+          </g>
+        );
+      })}
+      <line x1={PAD.left} y1={H - PAD.bottom} x2={W - PAD.right} y2={H - PAD.bottom}
+        stroke="#e5d8c8" strokeWidth={1} />
+      {xTicks.map(t => (
+        <text key={t.label} x={t.x} y={H - PAD.bottom + 10} textAnchor="middle" fontSize={9} fill="#9a7c65">
+          {t.label}
+        </text>
+      ))}
+    </svg>
+  );
 }
 
 export default function SessionSummary() {
@@ -120,14 +186,14 @@ export default function SessionSummary() {
   const blobBase = entered ? grade.blob : "cheering";
   const { blobState, onPet } = usePettable(blobBase);
 
-  const topDistractors =
+  const topDistractors = (
     summary.top_distractors.length > 0
       ? summary.top_distractors
       : Object.entries(summary.event_counts ?? {})
           .filter(([, v]) => v > 0)
-          .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
-          .map(([type, count]) => ({ type, count, impact: 0 }));
+          .map(([type, count]) => ({ type, count, impact: 0 }))
+  ).slice().sort((a, b) => (b.impact * b.count - a.impact * a.count) || (b.count - a.count));
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,6 +248,23 @@ export default function SessionSummary() {
           </div>
         </div>
 
+        {/* Focus timeline chart */}
+        {summary.focus_timeline && summary.focus_timeline.length >= 2 && (
+          <div className="mb-8 rounded-2xl border border-border/60 bg-card p-5">
+            <h2 className="text-sm font-bold mb-1 text-muted-foreground uppercase tracking-wider">
+              Focus timeline
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Red markers show when a distraction was detected.
+            </p>
+            <FocusLineChart
+              timeline={summary.focus_timeline}
+              events={summary.event_timeline ?? []}
+              durationMins={summary.duration_mins}
+            />
+          </div>
+        )}
+
         {/* Top distractors */}
         {topDistractors.length > 0 && (
           <div className="mb-8">
@@ -189,24 +272,32 @@ export default function SessionSummary() {
               What tripped you up
             </h2>
             <div className="space-y-3">
-              {topDistractors.map((d) => {
+              {topDistractors.map((d, i) => {
                 const tip = summary.improvement_tips?.[d.type] ?? TIPS[d.type];
+                const totalLoss = d.impact > 0 ? d.impact * d.count : null;
                 return (
                   <div
                     key={d.type}
                     className="rounded-xl border border-border/40 bg-card p-4"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="size-6 shrink-0 rounded-full bg-border/50 flex items-center justify-center text-[11px] font-black text-muted-foreground">
+                        {i + 1}
+                      </span>
+                      <span className="font-semibold text-sm flex-1">
                         {DISTRACTOR_LABELS[d.type] ?? d.type}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground shrink-0">
                         ×{d.count}
-                        {d.impact > 0 ? ` · -${d.impact}pts` : ""}
                       </span>
+                      {totalLoss != null && (
+                        <span className="text-xs font-black text-red-500 bg-red-500/10 rounded-full px-2 py-0.5 shrink-0">
+                          -{totalLoss} pts
+                        </span>
+                      )}
                     </div>
                     {tip && (
-                      <p className="text-xs text-muted-foreground">{tip}</p>
+                      <p className="text-xs text-muted-foreground pl-9">{tip}</p>
                     )}
                   </div>
                 );

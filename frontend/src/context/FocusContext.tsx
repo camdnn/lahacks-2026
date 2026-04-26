@@ -37,6 +37,9 @@ interface FocusState {
   blink_rate:      number;
 }
 
+export interface TimelinePoint { elapsed: number; score: number }
+export interface EventPoint    { elapsed: number; type: string }
+
 interface FocusCtx extends FocusState {
   connected:           boolean;
   cameraStream:        MediaStream | null;
@@ -46,6 +49,7 @@ interface FocusCtx extends FocusState {
   keyPoints:           KeyPoints | null;
   nextCoinPct:         number;
   secsToScoreRecovery: number;
+  getTimelines: () => { focus: TimelinePoint[]; events: EventPoint[] };
 }
 
 // ── utility functions ──────────────────────────────────────────────────────────
@@ -105,22 +109,22 @@ const WEIGHTS: Record<string, number> = {
 };
 
 const T = {
-  EAR_RATIO:     0.68,
-  EAR_SECS:      2.5,
-  MAR_YAWN:      0.48,
-  MAR_SECS:      1.0,
+  EAR_RATIO:     0.60,   // 60% of baseline — eyes need to close more before triggering
+  EAR_SECS:      3.5,
+  MAR_YAWN:      0.55,
+  MAR_SECS:      2.0,
   YAWN_COOLDOWN: 5.0,
-  TILT_DEG:      22,
-  TILT_SECS:     2.0,
-  PHONE_DELTA:   0.10,
-  PHONE_SECS:    1.5,
-  NO_FACE_SECS:  2.0,
+  TILT_DEG:      28,
+  TILT_SECS:     3.0,
+  PHONE_DELTA:   0.13,
+  PHONE_SECS:    2.5,
+  NO_FACE_SECS:  3.5,
   WINDOW_MS:     5 * 60 * 1000,
-  YAW_DEG:       25,
-  YAW_SECS:      2.0,
-  PITCH_DOWN:    20,
-  GAZE_X:        0.15,
-  GAZE_SECS:     2.0,
+  YAW_DEG:       30,
+  YAW_SECS:      3.0,
+  PITCH_DOWN:    25,
+  GAZE_X:        0.22,
+  GAZE_SECS:     3.0,
 };
 
 // MediaPipe landmark indices
@@ -162,6 +166,7 @@ const FocusContext = createContext<FocusCtx>({
   ...DEFAULTS, connected: false, cameraStream: null,
   coinsEarned: 0, multiplier: 1, streak_secs: 0, keyPoints: null,
   nextCoinPct: 0, secsToScoreRecovery: 0,
+  getTimelines: () => ({ focus: [], events: [] }),
 });
 
 // ── provider ───────────────────────────────────────────────────────────────────
@@ -194,6 +199,16 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const scoreRef       = useRef<number>(100);
   const lastRegenRef   = useRef<number>(0);
 
+  const sessionStartRef    = useRef<number>(0);
+  const focusTimelineRef   = useRef<TimelinePoint[]>([]);
+  const eventTimelineRef   = useRef<EventPoint[]>([]);
+  const timelineTickRef    = useRef<number>(0);
+
+  const getTimelines = useCallback(() => ({
+    focus:  [...focusTimelineRef.current],
+    events: [...eventTimelineRef.current],
+  }), []);
+
   const sus = useRef({ eyesClosed: 0, yawn: 0, headTilt: 0, phone: 0, noFace: 0, yaw: 0, gaze: 0 });
   const cal = useRef({
     noseBaseline: 0.57, tiltBaseline: 0,
@@ -209,6 +224,12 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     streakSecsRef.current = 0;
     lastRegenRef.current  = 0;
     scoreRef.current = Math.max(0, scoreRef.current - (WEIGHTS[type] ?? 0));
+    if (sessionStartRef.current > 0) {
+      eventTimelineRef.current.push({
+        elapsed: Math.round((Date.now() - sessionStartRef.current) / 1000),
+        type,
+      });
+    }
     const sid = sessionIdRef.current;
     if (sid) logEvent({ session_id: sid, event_type: type }).catch(() => {});
   }, []);
@@ -237,6 +258,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       coinsAccRef.current = 0;
       scoreRef.current = 100;
       lastRegenRef.current = 0;
+      focusTimelineRef.current = [];
+      eventTimelineRef.current = [];
+      timelineTickRef.current = 0;
+      sessionStartRef.current = 0;
       setCoinsEarned(0);
       setNextCoinPct(0);
       setSecsToScoreRecovery(0);
@@ -247,6 +272,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     const calNose: number[] = [], calTilt: number[] = [], calEar: number[] = [];
     const calDeadline = Date.now() + 3000;
     let lastMs = performance.now();
+    sessionStartRef.current = Date.now();
+    focusTimelineRef.current = [];
+    eventTimelineRef.current = [];
+    timelineTickRef.current = 0;
 
     async function init() {
       const vision = await FilesetResolver.forVisionTasks(
@@ -283,6 +312,15 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         const now = performance.now();
         const dt  = (now - lastMs) / 1000;
         lastMs = now;
+
+        timelineTickRef.current += dt;
+        if (timelineTickRef.current >= 10) {
+          timelineTickRef.current = 0;
+          focusTimelineRef.current.push({
+            elapsed: Math.round((Date.now() - sessionStartRef.current) / 1000),
+            score: Math.round(scoreRef.current),
+          });
+        }
 
         const res  = landmarkerRef.current.detectForVideo(videoRef.current, now);
         const lmks = res.faceLandmarks?.[0];
@@ -340,7 +378,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         }
 
         const tiltThresh  = Math.abs(cal.current.tiltBaseline) + T.TILT_DEG;
-        const phoneThresh = cal.current.noseBaseline - T.PHONE_DELTA;
+        const phoneThresh = cal.current.noseBaseline + T.PHONE_DELTA;
         const earThresh   = cal.current.earThreshold;
 
         // ── Sustained-event detection ──────────────────────────────────────
@@ -364,8 +402,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           if (sus.current.headTilt >= T.TILT_SECS) { recordEvent("head_tilt"); sus.current.headTilt = 0; }
         } else { sus.current.headTilt = 0; }
 
-        // Phone check: nose drops below baseline OR pitch > 20° (composite)
-        if (!dis.has("phone_check") && (noseRel < phoneThresh || pitch > T.PITCH_DOWN)) {
+        // Phone check: nose ratio rises above baseline (head tilts down) OR pitch > threshold
+        if (!dis.has("phone_check") && (noseRel > phoneThresh || pitch > T.PITCH_DOWN)) {
           sus.current.phone += dt;
           if (sus.current.phone >= T.PHONE_SECS) { recordEvent("phone_check"); sus.current.phone = 0; }
         } else { sus.current.phone = 0; }
@@ -543,7 +581,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     <FocusContext.Provider value={{
       ...data, connected, cameraStream,
       coinsEarned, multiplier, streak_secs: streakSecs, keyPoints,
-      nextCoinPct, secsToScoreRecovery,
+      nextCoinPct, secsToScoreRecovery, getTimelines,
     }}>
       {children}
     </FocusContext.Provider>

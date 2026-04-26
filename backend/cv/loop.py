@@ -16,12 +16,12 @@ from cv.eye import LEFT_EAR_INDICES, RIGHT_EAR_INDICES
 from cv.face import draw_eye_contour, draw_mouth_contour, draw_metrics_overlay, draw_event_badge
 from state import state
 
-# Thresholds (from PDF spec)
-EAR_THRESHOLD   = 0.15   # below = microsleep
-MAR_THRESHOLD   = 0.60   # above = yawn
-TILT_THRESHOLD  = 20.0   # degrees
-NOSE_THRESHOLD  = 0.55   # above = phone check
-EAR_CONSEC_FRAMES = 2    # consecutive frames for microsleep
+# Thresholds
+EAR_THRESHOLD   = 0.12   # below = microsleep
+MAR_THRESHOLD   = 0.65   # above = yawn
+TILT_THRESHOLD  = 25.0   # degrees
+NOSE_THRESHOLD  = 0.60   # above = phone check (head tilted down)
+EAR_CONSEC_FRAMES = 4    # consecutive frames for microsleep
 
 BLINK_EAR_THRESHOLD = 0.22  # for counting blinks (higher than microsleep)
 
