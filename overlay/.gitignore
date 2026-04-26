@@ -1,10 +1,4 @@
 node_modules/
 
-# electron-builder output — keep .dmg, ignore everything else
-dist/mac-arm64/
-dist/mac/
-dist/win-unpacked/
-dist/linux-unpacked/
-dist/builder-debug.yml
-dist/builder-effective-config.yaml
-dist/*.blockmap
+# electron-builder output — ignore everything (DMG too large for GitHub, use Releases)
+dist/
