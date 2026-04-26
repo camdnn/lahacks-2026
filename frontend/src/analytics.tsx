@@ -1864,7 +1864,7 @@ export function Component() {
             />
           </div>
           <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: -0.3 }}>
-            Bloom
+            Focus Friends
           </span>
         </a>
 

@@ -20,14 +20,14 @@ const HOW_IT_WORKS = [
     color: "#E26656",
     colorSoft: "#FFE0DB",
     title: "Eye Signal Tracking",
-    desc: "MediaPipe's 478-point face mesh runs locally in your browser. Bloom watches your eye aspect ratio to catch microsleeps, your gaze direction to detect eyes off-screen, and your blink patterns to gauge alertness — all without a single frame leaving your device.",
+    desc: "MediaPipe's 478-point face mesh runs locally in your browser. Focus Friends watches your eye aspect ratio to catch microsleeps, your gaze direction to detect eyes off-screen, and your blink patterns to gauge alertness — all without a single frame leaving your device.",
   },
   {
     icon: Monitor,
     color: C.green,
     colorSoft: C.greenSoft,
     title: "Computer Behaviour",
-    desc: "Bloom monitors head tilt and turn angles to spot when you've looked away, mouth openness to detect yawns, and tab-switching events during specialised sessions. Install the optional Pudge overlay for even deeper desktop-level insights.",
+    desc: "Focus Friends monitors head tilt and turn angles to spot when you've looked away, mouth openness to detect yawns, and tab-switching events during specialised sessions. Install the optional Pudge overlay for even deeper desktop-level insights.",
   },
   {
     icon: Zap,
@@ -93,7 +93,7 @@ export default function Info() {
               marginBottom: 20,
             }}
           >
-            ✦ About Bloom
+            ✦ About Focus Friends
           </div>
           <h1
             style={{
@@ -118,7 +118,7 @@ export default function Info() {
               lineHeight: 1.7,
             }}
           >
-            Bloom watches your eye signals and computer behaviour to catch micro-distractions
+            Focus Friends watches your eye signals and computer behaviour to catch micro-distractions
             before they steal your flow — and celebrates every win with coins and your personal
             blob companion.
           </p>

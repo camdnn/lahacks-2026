@@ -130,7 +130,7 @@ function Nav({ onLogin }: { onLogin: () => void }) {
           />
         </div>
         <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: -0.4 }}>
-          Bloom
+          Focus Friends
         </span>
         <span
           style={{
@@ -364,7 +364,7 @@ function Hero({
             margin: "0 auto 36px",
           }}
         >
-          Bloom watches your eye signals and computer behaviour to catch
+          Focus Friends watches your eye signals and computer behaviour to catch
           micro-distractions before they steal your flow — and celebrates every
           win with you.
         </p>
@@ -522,7 +522,7 @@ function Features() {
       color: "#F08F60",
       colorSoft: "#FFE8D9",
       title: "Flow Sessions",
-      desc: "Set a focus window, pick your apps, and let Bloom guide you. The mascot celebrates your coins and holds you accountable.",
+      desc: "Set a focus window, pick your apps, and let Focus Friends guide you. The mascot celebrates your coins and holds you accountable.",
       items: [
         "Custom time windows",
         "App & tab presets",
@@ -565,7 +565,7 @@ function Features() {
             margin: "0 auto",
           }}
         >
-          Bloom fuses biosignals and computer behaviour into a single focus
+          Focus Friends fuses biosignals and computer behaviour into a single focus
           score.
         </p>
       </div>
@@ -717,7 +717,7 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
               marginBottom: 28,
             }}
           >
-            After every session, Bloom ranks your top 5 most harmful break
+            After every session, Focus Friends ranks your top 5 most harmful break
             patterns, shows you your peak-focus window, and tells you exactly
             how to improve — with timestamps.
           </p>
@@ -905,7 +905,7 @@ function FooterCTA({ onFocus }: { onFocus: () => void }) {
             marginBottom: 36,
           }}
         >
-          Join Bloom and turn every session into a win.
+          Join Focus Friends and turn every session into a win.
         </p>
         <button
           className="landing-cta-btn"
@@ -959,7 +959,7 @@ export default function Homepage() {
           color: C.soft,
         }}
       >
-        <div>© 2026 Bloom · focus, with friends</div>
+        <div>© 2026 Focus Friends · focus, with friends</div>
         <div style={{ display: "flex", gap: 24 }}>
           {[
             { label: "Sign in", action: cta },
