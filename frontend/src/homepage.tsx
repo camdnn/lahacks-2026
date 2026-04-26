@@ -226,12 +226,13 @@ function Nav({ onLogin }: { onLogin: () => void }) {
 // ── Hero ──────────────────────────────────────────────────────
 function Hero({
   onLogin,
+  onFocus,
   onAnalytics,
 }: {
   onLogin: () => void;
+  onFocus: () => void;
   onAnalytics: () => void;
 }) {
-  const navigate = useNavigate();
   const [blobMsg, setBlobMsg] = useState("ready when you are :)");
   const msgs = [
     "flicker to flow",
@@ -367,7 +368,7 @@ function Hero({
         >
           <button
             className="landing-cta-btn"
-            onClick={() => navigate("/register")}
+            onClick={onFocus}
           >
             Start focusing free →
           </button>
@@ -836,8 +837,7 @@ function ScorePreview({ onAnalytics }: { onAnalytics: () => void }) {
 }
 
 // ── Footer CTA ────────────────────────────────────────────────
-function FooterCTA({ onLogin }: { onLogin: () => void }) {
-  const navigate = useNavigate();
+function FooterCTA({ onFocus }: { onFocus: () => void }) {
   return (
     <section
       style={{
@@ -896,7 +896,7 @@ function FooterCTA({ onLogin }: { onLogin: () => void }) {
         <button
           className="landing-cta-btn"
           style={{ fontSize: 18, padding: "18px 44px" }}
-          onClick={() => navigate("/register")}
+          onClick={onFocus}
         >
           Start for free →
         </button>
@@ -911,6 +911,7 @@ export default function Homepage() {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
   const cta = () => navigate(!loading && session ? "/home" : "/login");
+  const ctaFocus = () => navigate(!loading && session ? "/home" : "/register");
 
   return (
     <div
@@ -923,10 +924,10 @@ export default function Homepage() {
       }}
     >
       <Nav onLogin={cta} />
-      <Hero onLogin={cta} onAnalytics={() => navigate("/analytics")} />
+      <Hero onLogin={cta} onFocus={ctaFocus} onAnalytics={() => navigate("/analytics")} />
       <Features />
       <ScorePreview onAnalytics={() => navigate("/analytics")} />
-      <FooterCTA onLogin={cta} />
+      <FooterCTA onFocus={ctaFocus} />
       <footer
         style={{
           borderTop: `1.5px solid ${C.border}`,
