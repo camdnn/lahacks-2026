@@ -4,10 +4,14 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
+
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
+
+const INACTIVITY_MS = 30 * 60 * 1000;
 
 interface Profile {
   id: string;
@@ -44,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -60,6 +65,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
     return () => subscription.unsubscribe();
   }, []);
+
+  const resetTimeout = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      supabase.auth.signOut();
+    }, INACTIVITY_MS);
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      return;
+    }
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"] as const;
+    events.forEach((e) => document.addEventListener(e, resetTimeout, { passive: true }));
+    resetTimeout();
+    return () => {
+      events.forEach((e) => document.removeEventListener(e, resetTimeout));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [session, resetTimeout]);
 
   const loginWithEmail = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
