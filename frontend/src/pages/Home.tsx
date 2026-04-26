@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download, Store } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
