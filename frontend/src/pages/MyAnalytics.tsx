@@ -839,9 +839,16 @@ export default function MyAnalytics() {
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [fetchKey, setFetchKey] = useState(0);
 
+  // Tracks the latest uid on every render without making it a dep that suppresses
+  // the effect. This means the fetch always runs on mount — not only when the uid
+  // value changes — which is exactly what we need for React Router navigation.
+  const uidRef = useRef<string | null>(null);
+  uidRef.current = session?.user?.id ?? null;
+
   useEffect(() => { injectStyles(); }, []);
 
-  // Re-fetch when the browser restores this page from bfcache (back button from another site)
+  // Bump fetchKey when the browser restores this page from bfcache so the fetch
+  // effect re-runs even though React skipped remounting the component.
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) setFetchKey((k) => k + 1);
@@ -850,18 +857,25 @@ export default function MyAnalytics() {
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
+  // Deps: authLoading (wait for auth bootstrap) + fetchKey (bfcache / manual retrigger).
+  // session?.user?.id is intentionally omitted — reading it via uidRef means the fetch
+  // runs whenever the component mounts, not only when the ID value changes.
   useEffect(() => {
     if (authLoading) return;
-    const uid = session?.user?.id;
+
+    const uid = uidRef.current;
     if (!uid) {
       setLoading(false);
       return;
     }
+
     let mounted = true;
+
     (async () => {
       try {
         setLoading(true);
         setFetchError(null);
+
         const { data: sData, error: sErr } = await supabase
           .from("sessions")
           .select(
@@ -870,14 +884,17 @@ export default function MyAnalytics() {
           .eq("user_id", uid)
           .not("ended_at", "is", null)
           .order("started_at", { ascending: false });
+
         if (!mounted) return;
+
         if (sErr) {
           setFetchError(sErr.message);
-          setLoading(false);
           return;
         }
+
         const rows = (sData ?? []) as SessionRow[];
         setSessions(rows);
+
         if (rows.length > 0) {
           const ids = rows.map((r) => r.session_id);
           const { data: eData } = await supabase
@@ -887,18 +904,16 @@ export default function MyAnalytics() {
           if (!mounted) return;
           setEvents((eData ?? []) as EventRow[]);
         }
-        if (mounted) setLoading(false);
       } catch {
-        if (mounted) {
-          setFetchError("Failed to load analytics. Please try again.");
-          setLoading(false);
-        }
+        if (mounted) setFetchError("Failed to load analytics. Please try again.");
+      } finally {
+        // Runs regardless of success, error, or early return — loading never gets stuck.
+        if (mounted) setLoading(false);
       }
     })();
-    return () => {
-      mounted = false;
-    };
-  }, [session?.user?.id, authLoading, fetchKey]);
+
+    return () => { mounted = false; };
+  }, [authLoading, fetchKey]);
 
   // ── Aggregations ──────────────────────────────────────────
   const avgScore = useMemo(() => {
