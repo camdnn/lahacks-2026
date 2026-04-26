@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Coins, CheckCircle, Lock } from "lucide-react";
-import { Blob, type PaletteKey, type ShapeKey } from "../components/Blob";
+import { Blob } from "../components/Blob";
 import { useAuth } from "../context/AuthContext";
+import { CHARACTERS, type Character } from "../data/characters";
 
 const C = {
   bg: "#FBF1E5",
@@ -15,66 +16,6 @@ const C = {
   green: "#7FB069",
   greenSoft: "#D9F0D3",
 };
-
-interface Character {
-  key: string;
-  name: string;
-  palette: PaletteKey;
-  shape: ShapeKey;
-  price: number;
-  tagline: string;
-}
-
-const CHARACTERS: Character[] = [
-  {
-    key: "peach_classic",
-    name: "Peachy",
-    palette: "peach",
-    shape: "classic",
-    price: 0,
-    tagline: "Your original companion",
-  },
-  {
-    key: "cream_wide",
-    name: "Cloudy",
-    palette: "cream",
-    shape: "wide",
-    price: 150,
-    tagline: "Soft, calm, and wide-eyed",
-  },
-  {
-    key: "butter_eared",
-    name: "Sunny",
-    palette: "butter",
-    shape: "eared",
-    price: 200,
-    tagline: "Golden and full of energy",
-  },
-  {
-    key: "rose_baby",
-    name: "Rosey",
-    palette: "rose",
-    shape: "baby",
-    price: 250,
-    tagline: "Tiny but mighty",
-  },
-  {
-    key: "coral_spike",
-    name: "Ember",
-    palette: "coral",
-    shape: "spike",
-    price: 300,
-    tagline: "Fierce and fiery",
-  },
-  {
-    key: "honey_tall",
-    name: "Honey",
-    palette: "honey",
-    shape: "tall",
-    price: 350,
-    tagline: "Sweet and statuesque",
-  },
-];
 
 function CharacterCard({
   character,
@@ -287,8 +228,8 @@ export default function Store() {
   const [buyingKey, setBuyingKey] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const owned = profile?.owned_characters ?? ["peach_classic"];
-  const active = profile?.active_character ?? "peach_classic";
+  const owned = profile?.owned_characters ?? ["cream_wide"];
+  const active = profile?.active_character ?? "cream_wide";
   const balance = profile?.coin_balance ?? 0;
 
   const showToast = (msg: string) => {
@@ -319,7 +260,7 @@ export default function Store() {
         background: C.bg,
         fontFamily: "Nunito, system-ui, sans-serif",
         color: C.ink,
-        padding: "0 0 80px",
+        display: "flex",
       }}
     >
       {/* Toast */}
@@ -345,97 +286,129 @@ export default function Store() {
         </div>
       )}
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 24px 0" }}>
-        {/* Top bar */}
-        <div
+      {/* Sidebar */}
+      <div
+        style={{
+          width: 280,
+          flexShrink: 0,
+          borderRight: `1.5px solid ${C.border}`,
+          background: C.card,
+          display: "flex",
+          flexDirection: "column",
+          padding: "24px 16px",
+          gap: 4,
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          overflowY: "auto",
+        }}
+      >
+        <button
+          onClick={() => navigate(-1)}
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 40,
-            flexWrap: "wrap",
-            gap: 16,
+            gap: 6,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: C.soft,
+            fontSize: 13,
+            fontWeight: 800,
+            fontFamily: "inherit",
+            padding: "8px 10px",
+            borderRadius: 10,
+            marginBottom: 8,
+            textAlign: "left",
           }}
         >
-          <button
-            onClick={() => navigate("/home")}
+          <ArrowLeft size={15} /> Back
+        </button>
+
+        <div
+          style={{
+            padding: "0 10px 16px",
+            borderBottom: `1.5px solid ${C.border}`,
+            marginBottom: 8,
+          }}
+        >
+          <div
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 700,
+              fontSize: 11,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: 1.3,
               color: C.soft,
-              fontFamily: "inherit",
-              padding: 0,
+              marginBottom: 2,
             }}
           >
-            <ArrowLeft size={15} />
-            Back to home
-          </button>
+            Bloom
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.4 }}>
+            Character Shop
+          </div>
+        </div>
 
+        <div style={{ marginTop: "auto", paddingTop: 24, borderTop: `1.5px solid ${C.border}` }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 7,
+              gap: 6,
               background: "#FFF3D6",
               color: "#C97A3F",
-              borderRadius: 999,
-              padding: "8px 18px",
+              borderRadius: 14,
+              padding: "10px 14px",
               fontWeight: 900,
               fontSize: 15,
+              marginBottom: 12,
             }}
           >
-            <Coins size={16} />
+            <Coins size={15} />
             {balance} coins
           </div>
-        </div>
-
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div
+          <button
+            onClick={() => navigate("/start")}
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: C.accentSoft,
-              color: C.accent,
+              width: "100%",
+              background: C.accent,
+              color: "#fff",
+              border: "none",
               borderRadius: 999,
-              padding: "5px 14px",
-              fontSize: 12,
+              padding: "11px 0",
+              fontSize: 13,
               fontWeight: 800,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              marginBottom: 16,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              boxShadow: "0 4px 14px rgba(240,143,96,0.35)",
             }}
           >
-            ✦ Character Shop
-          </div>
-          <h1
-            style={{
-              fontSize: "clamp(28px, 4vw, 44px)",
-              fontWeight: 900,
-              letterSpacing: -1,
-              color: C.ink,
-              marginBottom: 10,
-            }}
-          >
-            Meet your companions
-          </h1>
-          <p style={{ fontSize: 15, fontWeight: 500, color: C.soft }}>
-            Spend your focus coins to unlock new blob friends.
-          </p>
+            Start a session →
+          </button>
         </div>
+      </div>
 
-        {/* Grid */}
+      {/* Main content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "40px 32px 80px" }}>
+        <h1
+          style={{
+            fontSize: "clamp(24px, 3vw, 36px)",
+            fontWeight: 900,
+            letterSpacing: -0.8,
+            color: C.ink,
+            marginBottom: 6,
+          }}
+        >
+          Meet your companions
+        </h1>
+        <p style={{ fontSize: 14, fontWeight: 500, color: C.soft, marginBottom: 36 }}>
+          Spend your focus coins to unlock new blob friends.
+        </p>
+
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
             gap: 20,
           }}
         >
@@ -454,7 +427,6 @@ export default function Store() {
           ))}
         </div>
 
-        {/* Earn more hint */}
         <div
           style={{
             marginTop: 48,
@@ -462,39 +434,14 @@ export default function Store() {
             border: `1.5px solid ${C.border}`,
             borderRadius: 20,
             padding: "20px 24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
           }}
         >
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: C.ink, marginBottom: 3 }}>
-              Need more coins?
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: C.soft }}>
-              Earn 1 coin every 5 seconds of focused work — up to 3× with your streak bonus.
-            </div>
+          <div style={{ fontWeight: 800, fontSize: 15, color: C.ink, marginBottom: 3 }}>
+            Need more coins?
           </div>
-          <button
-            onClick={() => navigate("/start")}
-            style={{
-              background: C.accent,
-              color: "#fff",
-              border: "none",
-              borderRadius: 999,
-              padding: "11px 22px",
-              fontSize: 14,
-              fontWeight: 800,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              whiteSpace: "nowrap",
-              boxShadow: "0 4px 14px rgba(240,143,96,0.35)",
-            }}
-          >
-            Start a session →
-          </button>
+          <div style={{ fontSize: 13, fontWeight: 500, color: C.soft }}>
+            Earn coins every 5 seconds of focused work — up to 3× with your streak bonus.
+          </div>
         </div>
       </div>
     </div>

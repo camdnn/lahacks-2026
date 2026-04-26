@@ -5,6 +5,7 @@ import { useFocus } from "../context/FocusContext";
 import { useAuth } from "../context/AuthContext";
 import { Blob, type BlobState } from "../components/Blob";
 import { Download, ChevronDown, LogOut } from "lucide-react";
+import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
 
 // ── Bloom palette ──────────────────────────────────────────────
@@ -73,6 +74,8 @@ export default function ActiveSession() {
   const { durationMins, elapsed, end, isActive } = useSession();
   const focus = useFocus();
   const { profile, updateCoins, logout } = useAuth();
+
+  const activeChar = getCharacter(profile?.active_character ?? "cream_wide");
 
   const [ending, setEnding] = useState(false);
   const [poked, setPoked] = useState(false);
