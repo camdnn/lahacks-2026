@@ -2,7 +2,7 @@ import {
   createContext, useContext, useState, useEffect,
   useRef, useCallback, type ReactNode,
 } from "react";
-import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import { FaceLandmarker, ObjectDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useSession } from "./SessionContext";
 import { logEvent, BASE_URL } from "../api/client";
 
@@ -20,6 +20,7 @@ export interface KeyPoints {
   mouthR:    [number, number];
   leftIris?: [number, number];
   rightIris?:[number, number];
+  phones?:   { x: number; y: number; w: number; h: number }[];
 }
 
 interface FocusState {
@@ -182,8 +183,9 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const [nextCoinPct, setNextCoinPct]       = useState(0);
   const [secsToScoreRecovery, setSecsToScoreRecovery] = useState(0);
 
-  const landmarkerRef  = useRef<FaceLandmarker | null>(null);
-  const videoRef       = useRef<HTMLVideoElement | null>(null);
+  const landmarkerRef     = useRef<FaceLandmarker | null>(null);
+  const objectDetectorRef = useRef<ObjectDetector | null>(null);
+  const videoRef          = useRef<HTMLVideoElement | null>(null);
   const intervalRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef   = useRef<string | null>(null);
   const countsRef      = useRef<Record<string, number>>(ZERO_COUNTS());
@@ -223,6 +225,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       streamRef.current = null;
       landmarkerRef.current?.close();
       landmarkerRef.current = null;
+      objectDetectorRef.current?.close();
+      objectDetectorRef.current = null;
       videoRef.current = null;
       setCameraStream(null);
       setConnected(false);
@@ -280,11 +284,40 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       setCameraStream(stream);
       setConnected(true);
 
+      // Load phone detector in background — camera doesn't wait for it
+      ObjectDetector.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.task",
+        },
+        runningMode: "VIDEO",
+        scoreThreshold: 0.5,
+      }).then(od => {
+        if (!cancelled) objectDetectorRef.current = od;
+        else od.close();
+      }).catch(() => {});
+
       intervalRef.current = setInterval(() => {
         if (cancelled || !landmarkerRef.current || !videoRef.current) return;
         const now = performance.now();
         const dt  = (now - lastMs) / 1000;
         lastMs = now;
+
+        // Detect phones if OD model is ready
+        let phones: { x: number; y: number; w: number; h: number }[] = [];
+        if (objectDetectorRef.current && videoRef.current) {
+          const vw = videoRef.current.videoWidth  || 1;
+          const vh = videoRef.current.videoHeight || 1;
+          const odRes = objectDetectorRef.current.detectForVideo(videoRef.current, now);
+          phones = odRes.detections
+            .filter(d => d.categories.some(c => c.categoryName === "cell phone"))
+            .map(d => ({
+              x: d.boundingBox!.originX / vw,
+              y: d.boundingBox!.originY / vh,
+              w: d.boundingBox!.width   / vw,
+              h: d.boundingBox!.height  / vh,
+            }));
+        }
 
         const res  = landmarkerRef.current.detectForVideo(videoRef.current, now);
         const lmks = res.faceLandmarks?.[0];
@@ -428,6 +461,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           mouthR:   [lmks[MOUTH_R].x,  lmks[MOUTH_R].y],
           leftIris:  lmks.length >= 478 ? [lmks[468].x, lmks[468].y] : undefined,
           rightIris: lmks.length >= 478 ? [lmks[473].x, lmks[473].y] : undefined,
+          phones,
         });
 
         // ── Throttled display update (300ms) ───────────────────────────────
@@ -477,6 +511,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       streamRef.current = null;
       landmarkerRef.current?.close();
       landmarkerRef.current = null;
+      objectDetectorRef.current?.close();
+      objectDetectorRef.current = null;
       videoRef.current = null;
     };
   }, [isActive, recordEvent]);

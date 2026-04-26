@@ -72,10 +72,34 @@ export default function ActiveSession() {
       videoRef.current.srcObject = focus.cameraStream;
   }, [focus.cameraStream]);
 
+  const handleEnd = async () => {
+    if (ending) return;
+    setEnding(true);
+    try {
+      const summary = await end();
+      navigate("/summary", { state: { summary } });
+    } catch {
+      const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
+      updateCoins(newBalance);
+      const localSummary = {
+        duration_mins: durationMins ?? Math.round(elapsed / 60),
+        focus_score: focus.focus_score,
+        coins_earned: focus.coinsEarned,
+        coin_balance: newBalance,
+        top_distractors: focus.top_distractors.map(([type, count]) => ({
+          type, count, impact: 0,
+        })),
+        improvement_tips: {},
+        event_counts: focus.counts,
+      };
+      navigate("/summary", { state: { summary: localSummary } });
+    }
+  };
+
   // Auto-end when timer runs out
   useEffect(() => {
-    if (durationMins && elapsed >= durationMins * 60 && !ending) handleEnd();
-  }, [elapsed, durationMins]);
+    if (durationMins && elapsed >= durationMins * 60 && !ending) setTimeout(handleEnd, 0);
+  }, [elapsed, durationMins]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Landmark canvas overlay ────────────────────────────────────────────────
   useEffect(() => {
@@ -113,17 +137,11 @@ export default function ActiveSession() {
     };
 
     const { leftEye, rightEye, nose, tiltL, tiltR, lipTop, lipBot, mouthL, mouthR } = focus.keyPoints;
-    const { leftEye, rightEye, nose, tiltL, tiltR, lipTop, lipBot, mouthL, mouthR, phones } = focus.keyPoints;
 
     // Eyes — green healthy, red if EAR is low (near microsleep)
     const eyeColor = focus.ear > 0.22 ? "#22c55e" : "#ef4444";
     drawPoly(leftEye, eyeColor);
     drawPoly(rightEye, eyeColor);
-    if (leftEye && leftEye.length > 0) {
-      // Eyes — green healthy, red if EAR is low (near microsleep)
-      const eyeColor = focus.ear > 0.22 ? "#22c55e" : "#ef4444";
-      drawPoly(leftEye, eyeColor);
-      drawPoly(rightEye, eyeColor);
 
     // Tilt line — green normal, amber if tilted (using yaw/pitch for color logic)
     ctx.beginPath();
@@ -132,23 +150,13 @@ export default function ActiveSession() {
     ctx.strokeStyle = (Math.abs(focus.yaw ?? 0) < 25 && Math.abs(focus.pitch ?? 0) < 20) ? "#22c55e" : "#f59e0b";
     ctx.lineWidth = 2;
     ctx.stroke();
-      // Tilt line — green normal, amber if tilted (using yaw/pitch for color logic)
-      ctx.beginPath();
-      ctx.moveTo(px(tiltL[0]), py(tiltL[1]));
-      ctx.lineTo(px(tiltR[0]), py(tiltR[1]));
-      ctx.strokeStyle = (Math.abs(focus.yaw ?? 0) < 25 && Math.abs(focus.pitch ?? 0) < 20) ? "#22c55e" : "#f59e0b";
-      ctx.lineWidth = 2;
-      ctx.stroke();
 
     // Mouth — green normal, red if yawning
     const mouthColor = focus.mar < 0.48 ? "#22c55e" : "#ef4444";
     drawPoly([mouthL, lipTop, mouthR, lipBot], mouthColor);
-      // Mouth — green normal, red if yawning
-      const mouthColor = focus.mar < 0.48 ? "#22c55e" : "#ef4444";
-      drawPoly([mouthL, lipTop, mouthR, lipBot], mouthColor);
 
     // Nose dot
-    const noseColor = focus.pitch > 12 ? "#ef4444" : "#60a5fa"; // Red if looking down (phone check)
+    const noseColor = focus.pitch > 12 ? "#ef4444" : "#60a5fa";
     ctx.beginPath();
     ctx.arc(px(nose[0]), py(nose[1]), 3, 0, Math.PI * 2);
     ctx.fillStyle = noseColor;
@@ -158,31 +166,10 @@ export default function ActiveSession() {
     const irisColor = Math.abs(focus.gaze_x ?? 0) > 0.15 ? "#f59e0b" : "#a78bfa";
     if (focus.keyPoints?.leftIris) {
       const [ix, iy] = focus.keyPoints.leftIris;
-      // Nose dot
-      const noseColor = focus.pitch > 12 ? "#ef4444" : "#60a5fa"; // Red if looking down (phone check)
       ctx.beginPath();
       ctx.arc(px(ix), py(iy), 3, 0, Math.PI * 2);
       ctx.fillStyle = irisColor;
-      ctx.arc(px(nose[0]), py(nose[1]), 3, 0, Math.PI * 2);
-      ctx.fillStyle = noseColor;
       ctx.fill();
-
-      // Iris dots (gaze visualization) — purple when centered, amber when off-center
-      const irisColor = Math.abs(focus.gaze_x ?? 0) > 0.15 ? "#f59e0b" : "#a78bfa";
-      if (focus.keyPoints?.leftIris) {
-        const [ix, iy] = focus.keyPoints.leftIris;
-        ctx.beginPath();
-        ctx.arc(px(ix), py(iy), 3, 0, Math.PI * 2);
-        ctx.fillStyle = irisColor;
-        ctx.fill();
-      }
-      if (focus.keyPoints?.rightIris) {
-        const [ix, iy] = focus.keyPoints.rightIris;
-        ctx.beginPath();
-        ctx.arc(px(ix), py(iy), 3, 0, Math.PI * 2);
-        ctx.fillStyle = irisColor;
-        ctx.fill();
-      }
     }
     if (focus.keyPoints?.rightIris) {
       const [ix, iy] = focus.keyPoints.rightIris;
@@ -190,31 +177,30 @@ export default function ActiveSession() {
       ctx.arc(px(ix), py(iy), 3, 0, Math.PI * 2);
       ctx.fillStyle = irisColor;
       ctx.fill();
+    }
 
-    if (phones && phones.length > 0) {
-      phones.forEach(p => {
-        const boxX = px(p.x + p.w);
-        const boxY = py(p.y);
-        const boxW = p.w * W;
-        const boxH = p.h * H;
-        const cx = boxX + boxW / 2;
-        const cy = boxY + boxH / 2;
+    // Phone bounding box — amber corner dots + outline
+    if (focus.keyPoints?.phones?.length) {
+      for (const p of focus.keyPoints.phones) {
+        const bx = px(p.x + p.w), by = py(p.y);
+        const bw = p.w * W,        bh = p.h * H;
 
         ctx.beginPath();
-        ctx.rect(boxX, boxY, boxW, boxH);
+        ctx.rect(bx, by, bw, bh);
         ctx.strokeStyle = "#f59e0b";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-        ctx.fillStyle = "#f59e0b";
-        ctx.fill();
-
-        ctx.fillStyle = "#f59e0b";
-        ctx.font = "bold 12px sans-serif";
-        ctx.fillText("📱 Phone", boxX, boxY - 6);
-      });
+        const corners: [number, number][] = [
+          [bx, by], [bx + bw, by], [bx, by + bh], [bx + bw, by + bh],
+        ];
+        for (const [cx, cy] of corners) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+          ctx.fillStyle = "#f59e0b";
+          ctx.fill();
+        }
+      }
     }
   }, [focus.keyPoints, focus.ear, focus.mar, focus.head_tilt, focus.yaw, focus.pitch, focus.gaze_x]);
 
@@ -222,30 +208,6 @@ export default function ActiveSession() {
     if (poked) return;
     setPoked(true);
     setTimeout(() => setPoked(false), 500);
-  };
-
-  const handleEnd = async () => {
-    if (ending) return;
-    setEnding(true);
-    try {
-      const summary = await end();
-      navigate("/summary", { state: { summary } });
-    } catch {
-      const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
-      updateCoins(newBalance);
-      const localSummary = {
-        duration_mins: durationMins ?? Math.round(elapsed / 60),
-        focus_score: focus.focus_score,
-        coins_earned: focus.coinsEarned,
-        coin_balance: newBalance,
-        top_distractors: focus.top_distractors.map(([type, count]) => ({
-          type, count, impact: 0,
-        })),
-        improvement_tips: {},
-        event_counts: focus.counts,
-      };
-      navigate("/summary", { state: { summary: localSummary } });
-    }
   };
 
   const remaining = durationMins ? Math.max(0, durationMins * 60 - elapsed) : elapsed;
