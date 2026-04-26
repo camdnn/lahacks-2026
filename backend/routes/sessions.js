@@ -14,6 +14,12 @@ router.post('/start', requireAuth, async (req, res) => {
       allowed_tabs       = [],
     } = req.body;
 
+    // Ensure profile row exists — handles users whose profile was lost after a DB teardown
+    await supabase.from('profiles').upsert(
+      { id: req.user.id, email: req.user.email },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+
     const { data, error } = await supabase
       .from('sessions')
       .insert({
@@ -52,6 +58,10 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    if (session.ended_at) {
+      return res.status(409).json({ error: 'Session already ended' });
+    }
+
     const snap = state.snapshot();
     state.stop();
 
@@ -60,7 +70,7 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
     const duration_mins = Math.max(1, Math.round((now - started) / 60_000));
     const coins       = Math.floor(snap.focus_seconds / 5);
 
-    const top_d = snap.top_distractors; // [ [type, count], … ]
+    const top_d = Array.isArray(snap.top_distractors) ? snap.top_distractors : [];
     const top_distractors = top_d.map(([type, count]) => ({
       type,
       count,
@@ -142,6 +152,42 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       improvement_tips,
       event_counts:     snap.counts,
     });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// POST /sessions/:session_id/snapshot  (requires auth)
+router.post('/:session_id/snapshot', requireAuth, async (req, res) => {
+  try {
+    const { session_id } = req.params;
+    const { ear, blink_rate_per_min, avg_blink_duration_ms, is_looking_at_screen, head_tilt_degrees } = req.body;
+
+    const { data: session, error: fetchErr } = await supabase
+      .from('sessions')
+      .select('session_id, ended_at')
+      .eq('session_id', session_id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchErr || !session) return res.status(404).json({ error: 'Session not found' });
+    if (session.ended_at)    return res.status(409).json({ error: 'Session already ended' });
+
+    if (typeof ear !== 'number' || ear < 0 || ear > 1)
+      return res.status(400).json({ error: 'Invalid ear value' });
+
+    const { error } = await supabase.from('eye_data').insert({
+      session_id,
+      user_id:               req.user.id,
+      eyelid_openness:       ear,
+      blink_rate_per_min:    blink_rate_per_min    ?? null,
+      avg_blink_duration_ms: avg_blink_duration_ms ?? null,
+      is_looking_at_screen:  is_looking_at_screen  ?? null,
+      head_tilt_degrees:     head_tilt_degrees     ?? null,
+    });
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.status(201).json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

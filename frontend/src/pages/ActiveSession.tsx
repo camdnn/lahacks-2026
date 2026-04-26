@@ -44,12 +44,13 @@ export default function ActiveSession() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
-  const videoRef   = useRef<HTMLVideoElement>(null);
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const videoRef        = useRef<HTMLVideoElement>(null);
+  const canvasRef       = useRef<HTMLCanvasElement>(null);
+  const dropdownRef     = useRef<HTMLDivElement>(null);
+  const goingToSummary  = useRef(false);
 
   useEffect(() => {
-    if (!isActive && !ending) navigate("/home");
+    if (!isActive && !ending && !goingToSummary.current) navigate("/home");
   }, [isActive, ending, navigate]);
 
   useEffect(() => {
@@ -165,9 +166,14 @@ export default function ActiveSession() {
     if (ending) return;
     setEnding(true);
     try {
-      const summary = await end();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 12_000)
+      );
+      const summary = await Promise.race([end(), timeoutPromise]);
+      goingToSummary.current = true;
       navigate("/summary", { state: { summary } });
-    } catch {
+    } catch (err) {
+      console.error('[handleEnd] falling back to local summary:', err);
       const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
       updateCoins(newBalance);
       const localSummary = {
@@ -181,7 +187,10 @@ export default function ActiveSession() {
         improvement_tips: {},
         event_counts: focus.counts,
       };
+      goingToSummary.current = true;
       navigate("/summary", { state: { summary: localSummary } });
+    } finally {
+      setEnding(false);
     }
   };
 
@@ -282,7 +291,7 @@ export default function ActiveSession() {
 
       {/* Desktop download hint */}
       <a
-        href="http://localhost:8000/download/overlay"
+        href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
         download="Pudge.dmg"
         className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-3 py-2 bg-card border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 shadow-sm transition-all"
       >

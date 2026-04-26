@@ -1,8 +1,8 @@
 import axios from "axios";
 import { supabase } from "../lib/supabaseClient";
+import type { DetectorSnapshotPayload } from "../types/session";
 
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const api = axios.create({ baseURL: BASE_URL });
 
@@ -29,6 +29,17 @@ export const logEvent = (data: {
   duration_ms?: number;
   metadata?: object;
 }) => api.post("/events/", data);
+
+export const saveSessionSnapshot = async (payload: DetectorSnapshotPayload): Promise<void> => {
+  const { session_id, ...body } = payload;
+  try {
+    await api.post(`/sessions/${session_id}/snapshot`, body);
+  } catch (err: any) {
+    // Silently ignore 409 (session already ended) — next tick won't fire anyway
+    if (err?.response?.status === 409) return;
+    throw err;
+  }
+};
 
 export const getState = () => api.get("/state");
 

@@ -126,7 +126,7 @@ export default function HomeDashboard() {
 
         {/* Download overlay */}
         <a
-          href={`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/download/overlay`}
+          href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}/download/overlay`}
           download="Pudge.dmg"
           className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
         >

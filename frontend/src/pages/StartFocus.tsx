@@ -372,7 +372,7 @@ export default function StartFocus() {
           <Button
             onClick={handleCalibrate}
             disabled={loading}
-            className="flex-1 h-12 text-base font-semibold"
+            className="flex-1 h-12 text-base font-semibold cursor-pointer"
           >
             Calibrate &amp; Start
           </Button>
@@ -380,7 +380,7 @@ export default function StartFocus() {
             onClick={handleStart}
             disabled={loading}
             variant="outline"
-            className="h-12 px-5 text-sm"
+            className="h-12 px-5 text-sm cursor-pointer"
           >
             {loading ? "Starting…" : "Skip"}
           </Button>
