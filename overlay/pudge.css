@@ -25,25 +25,17 @@ html, body {
 
 #pudge-inner { animation: pudge-bob 2.2s ease-in-out infinite; }
 
-#pudge-wrap.cheering    #pudge-inner { animation: pudge-bounce  1.1s ease-in-out infinite; }
-#pudge-wrap.sleeping    #pudge-inner { animation: pudge-breathe 4.2s ease-in-out infinite; }
-#pudge-wrap.sad         #pudge-inner { animation: pudge-droop   4.0s ease-in-out infinite; }
-#pudge-wrap.encouraging #pudge-inner { animation: pudge-nod     2.4s ease-in-out infinite; }
+#pudge-wrap.focused     #pudge-inner { animation: pudge-nod    2.4s ease-in-out infinite; }
+#pudge-wrap.distracted  #pudge-inner { animation: pudge-bob    2.2s ease-in-out infinite; }
+#pudge-wrap.sad         #pudge-inner { animation: pudge-droop  4.0s ease-in-out infinite; }
+#pudge-wrap.encouraging #pudge-inner { animation: pudge-nod    2.4s ease-in-out infinite; }
+
+/* Poke overrides everything with a one-shot wiggle */
+#pudge-wrap.poked #pudge-inner { animation: pudge-poke 0.45s ease-out forwards !important; }
 
 @keyframes pudge-bob {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-3px); }
-}
-
-@keyframes pudge-bounce {
-  0%, 100% { transform: scaleY(1)    scaleX(1)    translateY(0px); }
-  40%       { transform: scaleY(1.05) scaleX(0.97) translateY(-6px); }
-  70%       { transform: scaleY(0.97) scaleX(1.03) translateY(0px); }
-}
-
-@keyframes pudge-breathe {
-  0%, 100% { transform: scaleY(0.95) scaleX(1.03); }
-  50%       { transform: scaleY(1.02) scaleX(0.97); }
 }
 
 @keyframes pudge-nod {
@@ -56,13 +48,15 @@ html, body {
   50%       { transform: translateY(4px) scaleY(0.94) scaleX(1.05); }
 }
 
-/* ── Accent animations ────────────────────────────────────────────────────── */
-
-@keyframes pudge-zzz-float {
-  0%   { transform: translateY(4px);  opacity: 0; }
-  30%  { opacity: 1; }
-  100% { transform: translateY(-12px); opacity: 0; }
+@keyframes pudge-poke {
+  0%   { transform: scale(1)    rotate(0deg);  }
+  20%  { transform: scale(1.18) rotate(-8deg); }
+  55%  { transform: scale(1.1)  rotate(6deg);  }
+  80%  { transform: scale(1.04) rotate(-2deg); }
+  100% { transform: scale(1)    rotate(0deg);  }
 }
+
+/* ── Accent animations ────────────────────────────────────────────────────── */
 
 @keyframes pudge-sparkle-pop {
   0%, 100% { transform: scale(0); opacity: 0; }
@@ -80,6 +74,38 @@ html, body {
   20%  { opacity: 0.8; }
   100% { transform: translateY(14px); opacity: 0; }
 }
+
+/* ── Speech bubble ────────────────────────────────────────────────────────── */
+
+#pudge-bubble {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  background: #fff;
+  color: #333;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  white-space: normal;
+  width: 190px;
+  pointer-events: none;
+}
+
+#pudge-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 22px;
+  border: 7px solid transparent;
+  border-top-color: #fff;
+}
+
+#pudge-wrap.no-session #pudge-bubble { display: block; }
 
 /* ── Close button ─────────────────────────────────────────────────────────── */
 

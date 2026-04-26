@@ -1,12 +1,11 @@
 import asyncio
-import io
 import json
 import threading
-import zipfile
 from pathlib import Path
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 
 from database import database
 from state import state
@@ -55,24 +54,26 @@ async def get_state():
     return state.snapshot()
 
 
-_OVERLAY_DIR = Path(__file__).parent.parent / "overlay"
-_SKIP = {"node_modules", "dist", ".git", "__pycache__"}
+class FocusPush(BaseModel):
+    face_detected: bool
+    focus_score: float
+
+@app.post("/state/push")
+async def push_focus(body: FocusPush):
+    state.push_browser_focus(body.face_detected, body.focus_score)
+    return {"ok": True}
+
+
+_DMG_PATH = Path(__file__).parent.parent / "overlay" / "dist" / "Pudge-1.0.0-arm64.dmg"
 
 @app.get("/download/overlay")
 async def download_overlay():
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(_OVERLAY_DIR.rglob("*")):
-            if not path.is_file():
-                continue
-            if any(part in _SKIP for part in path.parts):
-                continue
-            zf.write(path, Path("pudge-overlay") / path.relative_to(_OVERLAY_DIR))
-    buf.seek(0)
-    return StreamingResponse(
-        buf,
-        media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="pudge-overlay.zip"'},
+    if not _DMG_PATH.exists():
+        raise HTTPException(status_code=404, detail="DMG not built yet — run `npm run dist` inside overlay/")
+    return FileResponse(
+        _DMG_PATH,
+        media_type="application/octet-stream",
+        filename="Pudge.dmg",
     )
 
 

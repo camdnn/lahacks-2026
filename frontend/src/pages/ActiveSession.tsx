@@ -4,6 +4,7 @@ import { useSession } from "../context/SessionContext";
 import { useFocus } from "../context/FocusContext";
 import { Blob, type BlobState } from "../components/Blob";
 import { Button } from "../components/ui/Button";
+import { Download } from "lucide-react";
 
 function fmt(secs: number) {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -32,6 +33,7 @@ export default function ActiveSession() {
   const { durationMins, elapsed, end, isActive } = useSession();
   const focus = useFocus();
   const [ending, setEnding]   = useState(false);
+  const [poked, setPoked]     = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -58,6 +60,12 @@ export default function ActiveSession() {
       handleEnd();
     }
   }, [elapsed, durationMins]);
+
+  const handlePoke = () => {
+    if (poked) return;
+    setPoked(true);
+    setTimeout(() => setPoked(false), 500);
+  };
 
   const handleEnd = async () => {
     if (ending) return;
@@ -93,6 +101,15 @@ export default function ActiveSession() {
 
   return (
     <div className="min-h-screen bg-background grid lg:grid-cols-2">
+      {/* Desktop download hint — replaces the removed browser FloatingPudge */}
+      <a
+        href="http://localhost:8000/download/overlay"
+        download="Pudge.dmg"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3 py-2 bg-card border border-border/60 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 shadow-sm transition-all"
+      >
+        <Download className="size-3 shrink-0" />
+        Get Pudge for desktop
+      </a>
       {/* Left — camera + mascot panel */}
       <div className="hidden lg:flex flex-col items-center justify-center bg-linear-to-br from-primary/90 via-primary to-primary/80 p-12 relative overflow-hidden gap-6">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
@@ -149,12 +166,12 @@ export default function ActiveSession() {
         </div>
 
         {/* Mascot */}
-        <div className="z-10">
+        <div className="z-10 cursor-pointer select-none" onClick={handlePoke}>
           <Blob
             palette="cream"
             shape="wide"
             size={160}
-            state={getBlobState(score, focus.face_detected)}
+            state={poked ? "poked" : getBlobState(score, focus.face_detected)}
             eyeTarget={mousePos}
             showGround
           />

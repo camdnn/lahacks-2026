@@ -71,7 +71,7 @@ export default function Home() {
         {/* Download overlay */}
         <a
           href="http://localhost:8000/download/overlay"
-          download="pudge-overlay.zip"
+          download="Pudge.dmg"
           className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
         >
           <div className="size-12 shrink-0 rounded-xl bg-orange-500/10 flex items-center justify-center">
@@ -84,7 +84,7 @@ export default function Home() {
             </div>
           </div>
           <span className="text-xs text-muted-foreground border border-border/60 rounded-full px-2.5 py-1 shrink-0">
-            .zip
+            .dmg
           </span>
         </a>
 

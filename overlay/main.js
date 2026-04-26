@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, session } = require('electron');
 const path = require('path');
 
 let win;
@@ -57,6 +57,22 @@ ipcMain.on('set-ignore-mouse', (_event, ignore) => {
 });
 
 app.whenReady().then(() => {
+  // Grant camera permission to renderer so MediaPipe can access the webcam
+  session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => {
+    cb(perm === 'media');
+  });
+
+  // Enable SharedArrayBuffer (required by MediaPipe WASM workers)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Cross-Origin-Opener-Policy': ['same-origin'],
+        'Cross-Origin-Embedder-Policy': ['require-corp'],
+      },
+    });
+  });
+
   createWindow();
   createTray();
 });
@@ -66,5 +82,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  // Dock icon clicked — show Pudge if window exists, create it if not
+  const wins = BrowserWindow.getAllWindows();
+  if (wins.length === 0) {
+    createWindow();
+  } else {
+    wins[0].webContents.send('show-pudge');
+  }
 });

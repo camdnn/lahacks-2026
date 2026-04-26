@@ -293,6 +293,27 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     };
   }, [isActive, recordEvent]);
 
+  // ── Sync browser focus state → backend so desktop overlay stays in sync ────
+  // face_detected and focus_score are computed entirely client-side by MediaPipe.
+  // The backend CV loop can't share the camera, so we push the browser's values
+  // every 2 s. The desktop overlay reads /state and gets the correct mood.
+  const focusSyncRef = useRef({ face_detected: false, focus_score: 100 });
+  useEffect(() => {
+    focusSyncRef.current = { face_detected: data.face_detected, focus_score: data.focus_score };
+  }, [data.face_detected, data.focus_score]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const iv = setInterval(() => {
+      fetch('http://127.0.0.1:8000/state/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(focusSyncRef.current),
+      }).catch(() => {});
+    }, 2000);
+    return () => clearInterval(iv);
+  }, [isActive]);
+
   // Stop camera on hard tab/window close
   useEffect(() => {
     if (!isActive) return;

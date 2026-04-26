@@ -102,6 +102,12 @@ class SessionState:
         with self._lock:
             self.focus_seconds += dt
 
+    def push_browser_focus(self, face_detected: bool, focus_score: float):
+        """Called by the browser's MediaPipe pipeline so the desktop overlay stays in sync."""
+        with self._lock:
+            self.face_detected = face_detected
+            self.focus_score = max(0.0, min(100.0, focus_score))
+
     def update_cv(self, *, ear, mar, head_tilt, nose_ratio, face_detected, blink_rate=0.0):
         with self._lock:
             self.ear = ear
