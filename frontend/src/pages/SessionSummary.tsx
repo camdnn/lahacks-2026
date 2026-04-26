@@ -368,7 +368,7 @@ export default function SessionSummary() {
               })}
             </div>
           </div>
-        )}
+        ) : null}
 
         {topDistractors.length === 0 && (
           <div className="mb-8 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">

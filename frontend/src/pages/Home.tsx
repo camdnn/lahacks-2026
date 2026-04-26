@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download, ShoppingBag } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -97,19 +97,8 @@ export default function HomeDashboard() {
                   Sign out
                 </button>
               </div>
-              <hr className="border-border mb-2" />
-              <button
-                onClick={() => { logout(); setProfileOpen(false); }}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-bold rounded-xl transition-colors cursor-pointer"
-                style={{ color: "#E26656" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#FFE0DB")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
-                <LogOut className="size-4" />
-                Sign out
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
