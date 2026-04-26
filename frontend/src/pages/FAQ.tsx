@@ -15,12 +15,12 @@ const C = {
 
 const FAQS = [
   {
-    q: "What is Bloom?",
-    a: "Bloom is a focus companion app that uses your webcam to detect micro-distractions — like microsleeps, phone checks, and yawning — and helps you stay in a state of deep flow. Your personal blob mascot cheers you on and rewards you with coins for every focused minute.",
+    q: "What is Focus Friends?",
+    a: "Focus Friends is a focus companion app that uses your webcam to detect micro-distractions — like microsleeps, phone checks, and yawning — and helps you stay in a state of deep flow. Your personal blob mascot cheers you on and rewards you with coins for every focused minute.",
   },
   {
-    q: "How does Bloom track my focus?",
-    a: "Bloom uses MediaPipe's face landmark model running entirely in your browser to measure eye openness (detecting microsleeps), mouth openness (detecting yawns), head tilt and turn angles, and gaze direction. It also monitors tab-switching behavior during specialised sessions. No data ever leaves your device.",
+    q: "How does Focus Friends track my focus?",
+    a: "Focus Friends uses MediaPipe's face landmark model running entirely in your browser to measure eye openness (detecting microsleeps), mouth openness (detecting yawns), head tilt and turn angles, and gaze direction. It also monitors tab-switching behavior during specialised sessions. No data ever leaves your device.",
   },
   {
     q: "What equipment do I need?",
@@ -172,7 +172,7 @@ export default function FAQ() {
             marginBottom: 48,
           }}
         >
-          Everything you need to know about Bloom.
+          Everything you need to know about Focus Friends.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

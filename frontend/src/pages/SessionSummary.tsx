@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Blob, usePettable } from "../components/Blob";
+import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
 import { RotateCcw, Home } from "lucide-react";
 
@@ -147,6 +148,7 @@ export default function SessionSummary() {
   const navigate = useNavigate();
   const { state: routeState } = useLocation();
   const summary: SummaryData | null = routeState?.summary ?? null;
+  const char = getCharacter(routeState?.characterKey ?? "cream_wide");
 
   const [animScore, setAnimScore] = useState(0);
   const [animCoins, setAnimCoins] = useState(0);
@@ -233,12 +235,12 @@ export default function SessionSummary() {
           <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(255,255,255,0.6)" }} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", opacity: 0.9 }}>Bloom</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", opacity: 0.9 }}>Focus Friends</span>
         </div>
 
         {/* Mascot */}
         <div style={{ position: "relative", zIndex: 1, cursor: "pointer" }} title="Pet Pudge!" onClick={onPet}>
-          <Blob palette="cream" shape="wide" size={160} state={blobState} eyeTarget={mousePos} showGround />
+          <Blob palette={char.palette} shape={char.shape} size={160} state={blobState} eyeTarget={mousePos} showGround />
         </div>
 
         {/* Grade text */}
@@ -248,7 +250,7 @@ export default function SessionSummary() {
           </h1>
           <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.75)", marginBottom: 4 }}>{grade.sub}</p>
           <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>
-            {summary.duration_mins}min session complete · click Pudge to celebrate!
+            {summary.duration_mins}min session complete · click {char.name} to celebrate!
           </p>
         </div>
       </div>

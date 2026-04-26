@@ -4,7 +4,7 @@ import { useSession } from "../context/SessionContext";
 import { useFocus } from "../context/FocusContext";
 import { useAuth } from "../context/AuthContext";
 import { Blob, type BlobState } from "../components/Blob";
-import { Download, ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { getCharacter } from "../data/characters";
 import { CartoonCoin } from "../components/CartoonCoin";
 
@@ -71,11 +71,11 @@ function SignalRow({
 
 export default function ActiveSession() {
   const navigate = useNavigate();
-  const { durationMins, elapsed, end, isActive } = useSession();
+  const { durationMins, elapsed, end, isActive, characterKey } = useSession();
   const focus = useFocus();
   const { profile, updateCoins, logout } = useAuth();
 
-  const activeChar = getCharacter(profile?.active_character ?? "cream_wide");
+  const activeChar = getCharacter(characterKey);
 
   const [ending, setEnding] = useState(false);
   const [poked, setPoked] = useState(false);
@@ -190,6 +190,7 @@ export default function ActiveSession() {
   const handleEnd = async () => {
     if (ending) return;
     setEnding(true);
+    const capturedCoins = focus.coinsEarned;
     const timelines = focus.getTimelines();
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -197,15 +198,15 @@ export default function ActiveSession() {
       );
       const summary = await Promise.race([end(), timeoutPromise]);
       goingToSummary.current = true;
-      navigate("/summary", { state: { summary: { ...summary, focus_timeline: timelines.focus, event_timeline: timelines.events } } });
+      navigate("/summary", { state: { summary: { ...summary, focus_timeline: timelines.focus, event_timeline: timelines.events }, characterKey } });
     } catch (err) {
       console.error("[handleEnd] falling back to local summary:", err);
-      const newBalance = (profile?.coin_balance ?? 0) + focus.coinsEarned;
+      const newBalance = (profile?.coin_balance ?? 0) + capturedCoins;
       updateCoins(newBalance);
       const localSummary = {
         duration_mins: durationMins ?? Math.round(elapsed / 60),
         focus_score: focus.focus_score,
-        coins_earned: focus.coinsEarned,
+        coins_earned: capturedCoins,
         coin_balance: newBalance,
         top_distractors: focus.top_distractors.map(([type, count]) => ({ type, count, impact: 0 })),
         improvement_tips: {},
@@ -214,7 +215,7 @@ export default function ActiveSession() {
         event_timeline: timelines.events,
       };
       goingToSummary.current = true;
-      navigate("/summary", { state: { summary: localSummary } });
+      navigate("/summary", { state: { summary: localSummary, characterKey } });
     } finally {
       setEnding(false);
     }
@@ -282,7 +283,7 @@ export default function ActiveSession() {
           <div style={{ width: 32, height: 32, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(240,143,96,0.35)" }}>
             <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.accentSoft }} />
           </div>
-          <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: C.ink }}>Bloom</span>
+          <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.3, color: C.ink }}>Focus Friends</span>
         </button>
 
         <div style={{ position: "relative" }} ref={dropdownRef}>
@@ -318,15 +319,6 @@ export default function ActiveSession() {
         </div>
       </header>
 
-      {/* ── Desktop download hint ── */}
-      <a
-        href={`${(import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "")}/download/overlay`}
-        download="Pudge.dmg"
-        style={{ position: "fixed", bottom: 20, right: 20, zIndex: 40, display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 999, fontSize: 12, fontWeight: 700, color: C.soft, textDecoration: "none", boxShadow: "0 2px 12px rgba(60,42,27,0.08)", transition: "all 0.15s" }}
-      >
-        <Download style={{ width: 12, height: 12, flexShrink: 0 }} />
-        Get Pudge for desktop
-      </a>
 
       {/* ── Main grid ── */}
       <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
@@ -408,7 +400,7 @@ export default function ActiveSession() {
 
           {/* Mascot */}
           <div style={{ zIndex: 1, cursor: "pointer", userSelect: "none" }} onClick={handlePoke}>
-            <Blob palette="cream" shape="wide" size={140}
+            <Blob palette={activeChar.palette} shape={activeChar.shape} size={140}
               state={poked ? "poked" : getBlobState(score, focus.face_detected)}
               eyeTarget={mousePos} showGround
             />
