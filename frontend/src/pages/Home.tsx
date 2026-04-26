@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download, Store } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -23,7 +23,7 @@ export default function HomeDashboard() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-card">
+      <header className="grid grid-cols-3 items-center px-8 py-4 border-b border-border bg-card">
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-lg font-bold cursor-pointer hover:opacity-75 transition-opacity"
@@ -39,8 +39,19 @@ export default function HomeDashboard() {
           <span className="font-black tracking-tight">Bloom</span>
         </button>
 
+        {/* Store button — centered */}
+        <div className="flex justify-center">
+          <button
+            onClick={() => navigate("/store")}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-background hover:bg-accent hover:border-primary transition-all cursor-pointer font-black text-sm"
+          >
+            <Store className="size-4" style={{ color: "#F08F60" }} />
+            Store
+          </button>
+        </div>
+
         {/* Profile dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative flex justify-end" ref={dropdownRef}>
           <button
             onClick={() => setProfileOpen(o => !o)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-accent transition-colors cursor-pointer"
