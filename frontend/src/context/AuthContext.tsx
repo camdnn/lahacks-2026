@@ -48,8 +48,8 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   const raw = data as Record<string, unknown>;
   return {
     ...raw,
-    owned_characters: Array.isArray(raw.owned_characters) ? raw.owned_characters as string[] : ["peach_classic"],
-    active_character: typeof raw.active_character === "string" ? raw.active_character : "peach_classic",
+    owned_characters: Array.isArray(raw.owned_characters) ? raw.owned_characters as string[] : ["cream_wide"],
+    active_character: typeof raw.active_character === "string" ? raw.active_character : "cream_wide",
   } as Profile;
 }
 
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         if (s) {
           const p = await fetchProfile(s.user.id);
-          setProfile(p);
+          setProfile(p ? { ...p, email: p.email ?? s.user.email ?? null } : null);
         } else {
           setProfile(null);
         }

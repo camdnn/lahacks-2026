@@ -6,11 +6,13 @@
 
 -- User profiles (mirrors auth.users; auto-populated by trigger below)
 CREATE TABLE IF NOT EXISTS profiles (
-    id           UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email        TEXT,
-    username     TEXT,
-    coin_balance INTEGER NOT NULL DEFAULT 0,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id               UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email            TEXT,
+    username         TEXT,
+    coin_balance     INTEGER  NOT NULL DEFAULT 0,
+    owned_characters TEXT[]   NOT NULL DEFAULT ARRAY['cream_wide'],
+    active_character TEXT     NOT NULL DEFAULT 'cream_wide',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Auto-create a profile row whenever a new Supabase auth user signs up
@@ -124,6 +126,11 @@ CREATE POLICY "eye_data: own rows" ON eye_data
 
 CREATE POLICY "streaks: own row" ON streaks
   FOR ALL USING (auth.uid() = user_id);
+
+-- ── Migration: character columns for existing rows ───────────────────────────
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS owned_characters TEXT[] NOT NULL DEFAULT ARRAY['cream_wide'],
+  ADD COLUMN IF NOT EXISTS active_character  TEXT   NOT NULL DEFAULT 'cream_wide';
 
 -- ── Analytics views ───────────────────────────────────────────────────────────
 -- Daily session roll-up: total focus time, avg score, coins earned per day
