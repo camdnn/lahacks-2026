@@ -15,16 +15,37 @@ class EyeDataBody(BaseModel):
     head_tilt_degrees: float | None = None
 
 
+class EyeDataBatchBody(BaseModel):
+    records: list[EyeDataBody]
+
+
+_INSERT_SQL = """INSERT INTO eye_data
+   (session_id, eyelid_openness, blink_rate_per_min, avg_blink_duration_ms, is_looking_at_screen, head_tilt_degrees)
+   VALUES (:sid, :eo, :br, :bd, :ls, :ht)"""
+
+
+def _params(r: EyeDataBody) -> dict:
+    return {
+        "sid": r.session_id,
+        "eo": r.eyelid_openness,
+        "br": r.blink_rate_per_min,
+        "bd": r.avg_blink_duration_ms,
+        "ls": r.is_looking_at_screen,
+        "ht": r.head_tilt_degrees,
+    }
+
+
 @router.post("/")
 async def log_eye_data(body: EyeDataBody):
-    await database.execute(
-        """INSERT INTO eye_data
-           (session_id, eyelid_openness, blink_rate_per_min, avg_blink_duration_ms, is_looking_at_screen, head_tilt_degrees)
-           VALUES (:sid, :eo, :br, :bd, :ls, :ht)""",
-        {"sid": body.session_id, "eo": body.eyelid_openness, "br": body.blink_rate_per_min,
-         "bd": body.avg_blink_duration_ms, "ls": body.is_looking_at_screen, "ht": body.head_tilt_degrees},
-    )
+    await database.execute(_INSERT_SQL, _params(body))
     return {"ok": True}
+
+
+@router.post("/batch")
+async def log_eye_data_batch(body: EyeDataBatchBody):
+    for record in body.records:
+        await database.execute(_INSERT_SQL, _params(record))
+    return {"ok": True, "count": len(body.records)}
 
 
 @router.get("/live")

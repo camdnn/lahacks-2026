@@ -1,7 +1,8 @@
 import axios from "axios";
 import { supabase } from "../lib/supabaseClient";
+import type { DetectorSnapshotPayload } from "../types/session";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const api = axios.create({ baseURL: BASE_URL });
 
@@ -13,6 +14,23 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+// On 401, refresh the Supabase session and retry once.
+// This handles expired access tokens during long focus sessions.
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && !error.config._retried) {
+      error.config._retried = true;
+      const { data, error: refreshErr } = await supabase.auth.refreshSession();
+      if (!refreshErr && data.session?.access_token) {
+        error.config.headers.Authorization = `Bearer ${data.session.access_token}`;
+        return api.request(error.config);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const startSession = (data: {
   session_type?: string;
@@ -28,6 +46,17 @@ export const logEvent = (data: {
   duration_ms?: number;
   metadata?: object;
 }) => api.post("/events/", data);
+
+export const saveSessionSnapshot = async (payload: DetectorSnapshotPayload): Promise<void> => {
+  const { session_id, ...body } = payload;
+  try {
+    await api.post(`/sessions/${session_id}/snapshot`, body);
+  } catch (err: any) {
+    // Silently ignore 409 (session already ended) — next tick won't fire anyway
+    if (err?.response?.status === 409) return;
+    throw err;
+  }
+};
 
 export const getState = () => api.get("/state");
 
