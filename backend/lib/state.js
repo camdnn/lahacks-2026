@@ -5,7 +5,7 @@
 //   • Event logging      →  POST /events      (recordEvent increments counts)
 
 export const WEIGHTS = {
-  microsleep:      10,
+  microsleep:       4,
   phone_check:      5,
   yawn:             3,
   tab_switch:       2,

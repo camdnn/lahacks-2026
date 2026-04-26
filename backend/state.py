@@ -2,7 +2,7 @@ import threading
 from datetime import datetime
 
 DISTRACTOR_WEIGHTS = {
-    "microsleep":      10,
+    "microsleep":       4,
     "phone_check":      5,
     "disallowed_tab":   4,
     "yawn":             3,

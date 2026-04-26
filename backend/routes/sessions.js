@@ -139,15 +139,48 @@ router.post('/end/:session_id', requireAuth, async (req, res) => {
       });
     }
 
+    // Query focus_events DB for accurate counts — handles the race condition where
+    // logEvent("microsleep") is fire-and-forget and may arrive after endSession.
+    // By querying here (after all other awaits), in-flight events have had time to land.
+    const { data: dbEvents } = await supabase
+      .from('focus_events')
+      .select('event_type')
+      .eq('session_id', session_id);
+
+    const dbCounts = {};
+    (dbEvents ?? []).forEach(({ event_type }) => {
+      dbCounts[event_type] = (dbCounts[event_type] ?? 0) + 1;
+    });
+
+    // Merge: take the higher of in-memory vs DB counts for each event type
+    const mergedCounts = { ...snap.counts };
+    for (const [type, count] of Object.entries(dbCounts)) {
+      if (count > (mergedCounts[type] ?? 0)) mergedCounts[type] = count;
+    }
+
+    const top_d_final = Object.entries(mergedCounts)
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] * (WEIGHTS[b[0]] ?? 0) - a[1] * (WEIGHTS[a[0]] ?? 0))
+      .slice(0, 5);
+
+    const top_distractors_final = top_d_final.map(([type, count]) => ({
+      type,
+      count,
+      impact: count * (WEIGHTS[type] ?? 1),
+    }));
+    const improvement_tips_final = Object.fromEntries(
+      top_d_final.map(([k]) => [k, TIPS[k] ?? ''])
+    );
+
     res.json({
       session_id,
       duration_mins,
       focus_score:      snap.focus_score,
       coins_earned:     coins,
       coin_balance,
-      top_distractors,
-      improvement_tips,
-      event_counts:     snap.counts,
+      top_distractors:  top_distractors_final,
+      improvement_tips: improvement_tips_final,
+      event_counts:     mergedCounts,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
