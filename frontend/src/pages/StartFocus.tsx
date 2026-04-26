@@ -238,7 +238,7 @@ export default function StartFocus() {
           <Label className="mb-3 block font-black text-sm uppercase tracking-wide text-muted-foreground">
             Choose Your Buddy
           </Label>
-          <div className="flex gap-3 overflow-x-auto pb-1">
+          <div className="flex gap-3 overflow-x-auto p-2">
             {CHARACTERS.map((char) => {
               const owned = ownedChars.includes(char.key);
               const selected = selectedChar === char.key;

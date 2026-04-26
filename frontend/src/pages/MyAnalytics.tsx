@@ -845,7 +845,9 @@ export default function MyAnalytics() {
   const uidRef = useRef<string | null>(null);
   uidRef.current = session?.user?.id ?? null;
 
-  useEffect(() => { injectStyles(); }, []);
+  useEffect(() => {
+    injectStyles();
+  }, []);
 
   // Bump fetchKey when the browser restores this page from bfcache so the fetch
   // effect re-runs even though React skipped remounting the component.
@@ -905,14 +907,17 @@ export default function MyAnalytics() {
           setEvents((eData ?? []) as EventRow[]);
         }
       } catch {
-        if (mounted) setFetchError("Failed to load analytics. Please try again.");
+        if (mounted)
+          setFetchError("Failed to load analytics. Please try again.");
       } finally {
         // Runs regardless of success, error, or early return — loading never gets stuck.
         if (mounted) setLoading(false);
       }
     })();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [authLoading, fetchKey]);
 
   // ── Aggregations ──────────────────────────────────────────
@@ -1204,7 +1209,7 @@ export default function MyAnalytics() {
           <span
             style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-.3px" }}
           >
-            Bloom
+            Focus Friends
           </span>
         </div>
         <span style={{ width: 1, height: 18, background: C.border }} />
@@ -1466,8 +1471,8 @@ export default function MyAnalytics() {
                 }}
               >
                 {scoreSeries[scoreSeries.length - 1] > scoreSeries[0]
-                  ? "You're improving 📈"
-                  : "Keep pushing 💪"}
+                  ? "You're improving!"
+                  : "Keep pushing!"}
               </div>
               <div
                 style={{
@@ -1886,7 +1891,8 @@ export default function MyAnalytics() {
                           color: "#C97A3F",
                         }}
                       >
-                        <CartoonCoin/>{s.coins_earned}
+                        <CartoonCoin />
+                        {s.coins_earned}
                       </div>
                     )}
                   </div>
