@@ -132,7 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateCoins = useCallback((balance: number) => {
     setProfile((p) => (p ? { ...p, coin_balance: balance } : p));
-  }, []);
+    if (session) {
+      supabase
+        .from("profiles")
+        .update({ coin_balance: balance })
+        .eq("id", session.user.id)
+        .then(() => {});
+    }
+  }, [session]);
 
   return (
     <AuthContext.Provider

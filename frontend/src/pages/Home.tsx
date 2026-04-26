@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Blob } from "../components/Blob";
-import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Home, Download } from "lucide-react";
+import { Coins, Flame, Play, BarChart2, LogOut, ChevronDown, Download } from "lucide-react";
 
 export default function HomeDashboard() {
   const { profile, logout } = useAuth();
@@ -123,7 +123,7 @@ export default function HomeDashboard() {
 
         {/* Download overlay */}
         <a
-          href="http://localhost:8000/download/overlay"
+          href={`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/download/overlay`}
           download="Pudge.dmg"
           className="group flex items-center gap-4 w-full max-w-lg rounded-2xl border border-border/60 bg-card px-6 py-4 hover:border-primary/40 hover:shadow-lg transition-all"
         >
@@ -140,15 +140,6 @@ export default function HomeDashboard() {
             .dmg
           </span>
         </a>
-
-        {/* Back to landing */}
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          <Home className="size-4" />
-          Back to home page
-        </button>
 
         {/* Streak */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-bold">

@@ -6,11 +6,12 @@ interface SessionCtx {
   sessionId: string | null;
   sessionType: string;
   allowedTabs: string[];
+  disabledChecks: string[];
   durationMins: number | null;
   elapsed: number;
   isActive: boolean;
   summary: object | null;
-  start: (type: string, durationMins?: number, allowedTabs?: string[]) => Promise<void>;
+  start: (type: string, durationMins?: number, allowedTabs?: string[], disabledChecks?: string[]) => Promise<void>;
   end: () => Promise<object>;
 }
 
@@ -18,16 +19,17 @@ const SessionContext = createContext<SessionCtx | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const { updateCoins } = useAuth();
-  const [sessionId, setSessionId]       = useState<string | null>(null);
-  const [sessionType, setSessionType]   = useState("general");
-  const [allowedTabs, setAllowedTabs]   = useState<string[]>([]);
-  const [durationMins, setDurationMins] = useState<number | null>(null);
+  const [sessionId, setSessionId]           = useState<string | null>(null);
+  const [sessionType, setSessionType]       = useState("general");
+  const [allowedTabs, setAllowedTabs]       = useState<string[]>([]);
+  const [disabledChecks, setDisabledChecks] = useState<string[]>([]);
+  const [durationMins, setDurationMins]     = useState<number | null>(null);
   const [elapsed, setElapsed]           = useState(0);
   const [isActive, setIsActive]         = useState(false);
   const [summary, setSummary]           = useState<object | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const start = useCallback(async (type: string, durMins?: number, tabs: string[] = []) => {
+  const start = useCallback(async (type: string, durMins?: number, tabs: string[] = [], disabled: string[] = []) => {
     let sessionId = crypto.randomUUID();
     try {
       const { data } = await apiStart({
@@ -42,6 +44,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setSessionId(sessionId);
     setSessionType(type);
     setAllowedTabs(tabs);
+    setDisabledChecks(disabled);
     setDurationMins(durMins ?? null);
     setElapsed(0);
     setIsActive(true);
@@ -65,7 +68,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   return (
     <SessionContext.Provider value={{
-      sessionId, sessionType, allowedTabs, durationMins,
+      sessionId, sessionType, allowedTabs, disabledChecks, durationMins,
       elapsed, isActive, summary, start, end,
     }}>
       {children}

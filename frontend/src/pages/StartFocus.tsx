@@ -5,9 +5,26 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from "../components/ui/Label";
 import { Blob, type BlobState } from "../components/Blob";
-import { ArrowLeft, Check, Clock, Globe, Zap } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Clock, Code2, Globe, PenLine, Settings2, Users, Zap } from "lucide-react";
 
 const DURATIONS = [15, 25, 45, 60, 90];
+
+const ALL_CHECKS = [
+  { id: "microsleep",  label: "Eyes Closed" },
+  { id: "yawn",        label: "Yawn" },
+  { id: "phone_check", label: "Phone Check" },
+  { id: "head_tilt",   label: "Head Tilt" },
+  { id: "yaw",         label: "Head Turn" },
+  { id: "gaze",        label: "Gaze Drift" },
+];
+
+const PRESETS = [
+  { id: "studying", label: "Studying",       icon: BookOpen,  disabled: [] as string[] },
+  { id: "coding",   label: "Coding",         icon: Code2,     disabled: ["yaw", "gaze"] },
+  { id: "notes",    label: "Taking Notes",   icon: PenLine,   disabled: ["yaw", "gaze", "phone_check"] },
+  { id: "meeting",  label: "Meeting / Call", icon: Users,     disabled: ["yaw", "gaze", "head_tilt"] },
+  { id: "custom",   label: "Custom",         icon: Settings2, disabled: null as string[] | null },
+];
 
 type Step = "config" | "calibrating" | "done";
 
@@ -19,6 +36,8 @@ export default function StartFocus() {
   const [duration, setDuration]         = useState(25);
   const [allowedTabInput, setAllowedTabInput] = useState("");
   const [allowedTabs, setAllowedTabs]   = useState<string[]>([]);
+  const [preset, setPreset]             = useState("studying");
+  const [customDisabled, setCustomDisabled] = useState<string[]>([]);
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState("");
   const [countdown, setCountdown]       = useState(5);
@@ -93,11 +112,16 @@ export default function StartFocus() {
     await handleStart();
   };
 
+  const finalDisabled =
+    preset === "custom"
+      ? customDisabled
+      : (PRESETS.find(p => p.id === preset)?.disabled ?? []) as string[];
+
   const handleStart = async () => {
     setLoading(true);
     setError("");
     try {
-      await start(sessionType, duration, sessionType === "specialized" ? allowedTabs : []);
+      await start(sessionType, duration, sessionType === "specialized" ? allowedTabs : [], finalDisabled);
       navigate("/session");
     } catch {
       setError("Failed to start session. Is the backend running?");
@@ -248,6 +272,48 @@ export default function StartFocus() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Activity preset */}
+        <div className="mb-6">
+          <Label className="mb-3 block font-black text-sm uppercase tracking-wide text-muted-foreground">
+            What are you doing?
+          </Label>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {PRESETS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setPreset(id)}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-black cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                  preset === id
+                    ? "border-orange-500 bg-orange-500/10 text-primary"
+                    : "border-border/60 hover:border-border text-muted-foreground"
+                }`}
+              >
+                <Icon className="size-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+          {preset === "custom" && (
+            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-card border border-border/60">
+              {ALL_CHECKS.map(({ id, label }) => (
+                <label key={id} className="flex items-center gap-2 text-sm font-semibold cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!customDisabled.includes(id)}
+                    onChange={(e) =>
+                      setCustomDisabled(prev =>
+                        e.target.checked ? prev.filter(x => x !== id) : [...prev, id]
+                      )
+                    }
+                    className="accent-orange-500"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Allowed tabs */}
