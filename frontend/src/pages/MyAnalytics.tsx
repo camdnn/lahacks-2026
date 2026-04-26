@@ -520,7 +520,13 @@ export default function MyAnalytics() {
 
   if (sessions.length === 0) {
     return (
-      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", fontFamily: "Nunito, system-ui, sans-serif", color: C.ink }}>
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", fontFamily: "Nunito, system-ui, sans-serif", color: C.ink, position: "relative" }}>
+        <button
+          onClick={() => navigate("/home")}
+          style={{ position: "absolute", top: 24, left: 24, display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.soft, fontSize: 13, fontWeight: 800, fontFamily: "inherit", padding: "8px 10px", borderRadius: 10 }}
+        >
+          <ArrowLeft size={15} /> Back to home
+        </button>
         <div className="ma-fade" style={{ textAlign: "center" }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🌱</div>
           <h2 style={{ fontSize: 26, fontWeight: 900, letterSpacing: -0.8, marginBottom: 10 }}>No sessions yet</h2>

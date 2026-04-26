@@ -148,7 +148,7 @@ function Nav({ onLogin }: { onLogin: () => void }) {
           <div className="relative" ref={dropdownRef}>
             {/* Profile dropdown */}
             <button
-              onClick={() => setProfileOpen((o) => !o)}
+              onClick={() => setProfileOpen((o: boolean) => !o)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-accent transition-colors cursor-pointer"
             >
               <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-black text-primary select-none">
